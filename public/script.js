@@ -272,12 +272,45 @@ socket.on("attacked", (data) => {
 // =====================
 socket.on("gameEnd", (data) => {
     if (data.winner === socket.id) {
+        wins++;
         result.textContent = "🎉 あなたの勝ち！";
     } else {
+        losses++;
         result.textContent = "💀 あなたの負け...";
     }
     myTurn = false;
+
+    // 勝敗数更新
+    document.getElementById("score").textContent = `${wins}勝 ${losses}敗`;
+
+    // 再戦ボタン表示
+    document.getElementById("rematchBtn").hidden = false;
 });
+socket.on("waitingRematch", () => {
+    result.textContent = "相手の再戦待ち...";
+    document.getElementById("rematchBtn").hidden = true;
+});
+
+socket.on("rematchReady", () => {
+    usedKana = [];
+    currentIndex = 0;
+    answer = [];
+
+    keyboard2.querySelectorAll("button").forEach(btn => {
+        btn.disabled = false;
+        btn.style.backgroundColor = "";
+    });
+
+    inputs.forEach(i => i.value = "");
+    updateSelection();
+
+    document.getElementById("rematchBtn").hidden = true;
+    showScreen("screenInput");
+});
+
+document.getElementById("rematchBtn").onclick = () => {
+    socket.emit("rematch");
+};
 
 // =====================
 // socket：エラー
