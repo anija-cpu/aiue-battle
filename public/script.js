@@ -93,6 +93,8 @@ const kanaList = [
 ];
 
 function buildKeyboard(container, mode) {
+    const watchKeyboard = document.getElementById("watchKeyboard");
+    if (watchKeyboard) buildKeyboard(watchKeyboard, "watch");
     kanaList.forEach(kana => {
         if (!kana || (mode === "battle" && kana === "×")) {
             container.appendChild(document.createElement("div"));
@@ -246,6 +248,7 @@ socket.on("gameStart", (data) => {
     buildMyCards();
     document.getElementById("myName").textContent = `自分：${data.myName}`;
     document.getElementById("opponentName").textContent = `相手：${data.opponentName}`;
+    document.getElementById("battleTheme").textContent = `お題：${data.theme}`;
     showScreen("screenBattle");
     myTurn = data.firstTurn === socket.id;
     updateTurnDisplay();

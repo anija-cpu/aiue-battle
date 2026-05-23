@@ -125,13 +125,15 @@ io.on("connection", (socket) => {
                 firstTurn,
                 opponentLength: room.answers[player2].length,
                 myName: room.playerNames[player1],
-                opponentName: room.playerNames[player2]
+                opponentName: room.playerNames[player2],
+                theme: room.theme
             });
             io.to(player2).emit("gameStart", {
                 firstTurn,
                 opponentLength: room.answers[player1].length,
                 myName: room.playerNames[player2],
-                opponentName: room.playerNames[player1]
+                opponentName: room.playerNames[player1],
+                theme: room.theme
             });
             // 観戦者へ
             const spectators = [...io.sockets.adapter.rooms.get(socket.roomId) || []].filter(

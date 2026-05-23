@@ -270,15 +270,16 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
 
 /* 観戦ログ */
 #watchLog {
-    max-height: 200px;
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    width: 260px;
+    max-height: 80vh;
     overflow-y: auto;
-    margin: 16px auto;
-    max-width: 400px;
-    background: rgba(255,248,235,0.8);
-    border: 1px solid #c8965a;
+    background: rgba(0,0,0,0.7);
+    border: 1px solid #444;
     border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 14px;
-    text-align: left;
-    color: #3b1f0a;
+    padding: 8px;
+    font-size: 0.8em;
+    z-index: 100;
 }
