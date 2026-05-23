@@ -118,3 +118,26 @@ button {
 #gameDescription li {
     margin: 8px 0;
 }
+#gameDescription2 {
+    max-width: 600px;
+    margin: 20px auto;
+    text-align: left;
+    line-height: 1.8;
+}
+
+#gameDescription2 h2 {
+    text-align: center;
+    margin-top: 30px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #555;
+    padding-bottom: 5px;
+}
+
+#gameDescription2 ul,
+#gameDescription2 ol {
+    padding-left: 20px;
+}
+
+#gameDescription2 li {
+    margin: 8px 0;
+}
