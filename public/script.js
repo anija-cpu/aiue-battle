@@ -28,6 +28,8 @@ let currentIndex = 0;
 let answer = [];
 let usedKana = [];
 let myTurn = false;
+let wins = 0;
+let losses = 0;
 
 // =====================
 // 画面切り替え

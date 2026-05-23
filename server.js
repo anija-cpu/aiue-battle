@@ -241,6 +241,32 @@ socket.on("attack", (data) => {
     }
 });
 
+// =====================
+// 再戦
+// =====================
+socket.on("rematch", () => {
+
+    const room = rooms[socket.roomId];
+
+    if (!room) return;
+
+    room.rematchVotes = room.rematchVotes || [];
+    room.rematchVotes.push(socket.id);
+
+    // 両者が再戦を希望
+    if (room.rematchVotes.length === 2) {
+
+        room.answers = {};
+        room.hits = {};
+        room.started = false;
+        room.rematchVotes = [];
+
+        io.to(socket.roomId).emit("rematchReady");
+    } else {
+        socket.emit("waitingRematch");
+    }
+});
+
     // =====================
     // 切断
     // =====================
