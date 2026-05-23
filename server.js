@@ -98,6 +98,18 @@ io.on("connection", (socket) => {
         if (room.players.length === 2) {
             io.to(roomId).emit("ready");
         }
+        // =====================
+// お題選択
+// =====================
+socket.on("selectTheme", (theme) => {
+
+    const room = rooms[socket.roomId];
+    if (!room) return;
+    if (room.themeSelected) return; // すでに選択済みなら無視
+
+    room.themeSelected = true;
+    io.to(socket.roomId).emit("themeDecided", { theme });
+});
     });
 
     // =====================
@@ -260,6 +272,7 @@ socket.on("rematch", () => {
         room.hits = {};
         room.started = false;
         room.rematchVotes = [];
+        room.themeSelected = false;
 
         io.to(socket.roomId).emit("rematchReady");
     } else {

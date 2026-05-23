@@ -44,6 +44,14 @@
     <!-- ②待機画面 -->
 <!-- ②待機画面 -->
 <div id="screenWait" hidden>
+    <!-- ②-2 お題選択画面 -->
+<div id="screenTheme" hidden>
+    <h2>お題を選んでください</h2>
+    <p>先に選んだ方に決定します</p>
+    <button id="randomThemeBtn">ランダム</button>
+    <button id="freeThemeBtn">自由</button>
+    <p id="themeWait"></p>
+</div>
     <h2>相手を待っています...</h2>
     <p id="waitRoomId"></p>
     <hr>
@@ -70,6 +78,10 @@
 </div>
 
     <!-- ③単語入力画面 -->
+<div id="screenInput" hidden>
+    <p id="scoreInput">0勝 0敗</p>
+    <p id="themeDisplay"></p>   ← 追加
+    <h2>単語を入力してください</h2>
     <div id="screenInput" hidden>
         <p id="scoreInput">0勝 0敗</p>
         <h2>単語を入力してください</h2>

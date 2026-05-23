@@ -35,7 +35,7 @@ let losses = 0;
 // 画面切り替え
 // =====================
 function showScreen(id) {
-    ["screenRoom","screenWait","screenInput","screenBattle"].forEach(s => {
+    ["screenRoom","screenWait","screenTheme","screenInput","screenBattle"].forEach(s => {
         document.getElementById(s).hidden = (s !== id);
     });
 }
@@ -200,7 +200,7 @@ socket.on("joinedRoom", (roomId) => {
 // socket：2人揃った
 // =====================
 socket.on("ready", () => {
-    showScreen("screenInput");
+    showScreen("screenTheme");
 });
 
 // =====================
@@ -313,6 +313,46 @@ socket.on("gameEnd", (data) => {
     document.getElementById("score").textContent = `${wins}勝 ${losses}敗`;
     document.getElementById("rematchBtn").hidden = false;
 });
+// =====================
+// お題リスト
+// =====================
+const themeList = [
+    "ファストフード店のメニュー","コンビニ商品","アイスの名前","カップ麺","お菓子",
+    "飲み物","パンの名前","冷凍食品","レトルト食品","駄菓子",
+    "都道府県","市区町村","駅名","国名","世界遺産",
+    "川の名前","山の名前","温泉地","空港名","路線名",
+    "アニメタイトル","漫画タイトル","ゲームタイトル","映画タイトル","曲名",
+    "アーティスト名","声優","Vtuber","YouTuber","芸人",
+    "家電","文房具","アプリ名","サイト名","スマホゲーム",
+    "家具","ブランド名","車種","電車","楽器",
+    "職業","資格","教科","部活",
+    "動物","魚","鳥","虫","花","野菜","果物"
+];
+
+// =====================
+// お題選択ボタン
+// =====================
+document.getElementById("randomThemeBtn").onclick = () => {
+    const theme = themeList[Math.floor(Math.random() * themeList.length)];
+    socket.emit("selectTheme", theme);
+    document.getElementById("themeWait").textContent = "選択中...";
+};
+
+document.getElementById("freeThemeBtn").onclick = () => {
+    socket.emit("selectTheme", "自由");
+    document.getElementById("themeWait").textContent = "選択中...";
+};
+
+// =====================
+// お題確定
+// =====================
+socket.on("themeDecided", (data) => {
+    const display = data.theme === "自由"
+        ? "自由入力"
+        : `お題：${data.theme}`;
+    document.getElementById("themeDisplay").textContent = display;
+    showScreen("screenInput");
+});
 
 // =====================
 // socket：再戦待ち
@@ -341,7 +381,9 @@ socket.on("rematchReady", () => {
     document.getElementById("battleLog").innerHTML = "";
     document.getElementById("rematchBtn").hidden = true;
     document.getElementById("scoreInput").textContent = `${wins}勝 ${losses}敗`;
-    showScreen("screenInput");
+    document.getElementById("themeDisplay").textContent = "";
+    document.getElementById("themeWait").textContent = "";
+    showScreen("screenTheme");
 });
 
 // =====================
