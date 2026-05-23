@@ -216,7 +216,18 @@ checkButton.onclick = () => {
     }
 
     socket.emit("setAnswer", answer);
-    result.textContent = "相手の入力待ち...";
+
+    // 入力欄を伏せる
+    inputs.forEach(i => {
+        if (i.value && i.value !== "×") {
+            i.value = "□";
+        }
+    });
+
+    // 決定ボタンを無効化
+    checkButton.disabled = true;
+
+    result.textContent = "単語を設定しました！相手の入力を待っています...";
 };
 
 // =====================
