@@ -141,3 +141,14 @@ button {
 #gameDescription2 li {
     margin: 8px 0;
 }
+#result {
+    margin-top: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    transition: color 0.3s;
+}
+
+#keyboardArea2.disabled {
+    opacity: 0.3;
+    pointer-events: none;
+}

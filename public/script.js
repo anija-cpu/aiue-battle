@@ -150,7 +150,15 @@ function buildMyCards() {
 // ターン表示更新
 // =====================
 function updateTurnDisplay() {
-    result.textContent = myTurn ? "あなたのターン！" : "相手のターン...";
+    if (myTurn) {
+        result.textContent = "⚔️ あなたのターン！";
+        result.style.color = "#00ff88";
+        document.getElementById("keyboardArea2").classList.remove("disabled");
+    } else {
+        result.textContent = "🛡️ 相手のターン...";
+        result.style.color = "#888888";
+        document.getElementById("keyboardArea2").classList.add("disabled");
+    }
 }
 
 // =====================
