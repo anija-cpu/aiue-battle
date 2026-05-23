@@ -208,6 +208,13 @@ socket.on("ready", () => {
 // =====================
 checkButton.onclick = () => {
     answer = Array.from(inputs).map(i => i.value || "×");
+    
+    const validCount = answer.filter(k => k !== "×").length;
+    if (validCount < 2) {
+        alert("2文字以上入力してください！");
+        return;
+    }
+
     socket.emit("setAnswer", answer);
     result.textContent = "相手の入力待ち...";
 };
