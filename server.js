@@ -130,14 +130,19 @@ io.on("connection", (socket) => {
                 myName: room.playerNames[player2],
                 opponentName: room.playerNames[player1]
             });
-            // 観戦者へ
-            socket.to(socket.roomId).emit("spectatorGameStart", {
-                player1,
-                player2,
-                name1: room.playerNames[player1],
-                name2: room.playerNames[player2],
-                length1: room.answers[player1].length,
-                length2: room.answers[player2].length
+            // 観戦者へ（プレイヤー以外）
+            const spectators = [...io.sockets.adapter.rooms.get(socket.roomId) || []].filter(
+                id => !room.players.includes(id)
+                );
+                spectators.forEach(id => {
+                    io.to(id).emit("spectatorGameStart", {
+                        player1,
+                        player2,
+                        name1: room.playerNames[player1],
+                        name2: room.playerNames[player2],
+                        length1: room.answers[player1].length,
+                        length2: room.answers[player2].length
+                    });
             });
             console.log("game started:", socket.roomId);
         }
@@ -204,15 +209,20 @@ io.on("connection", (socket) => {
         });
 
         // 観戦者へ
-        socket.to(socket.roomId).emit("spectatorAttack", {
-            kana: data.kana,
-            attacker,
-            defender,
-            hitDefenderIndexes,
-            hitSelfIndexes,
-            hitDefender,
-            hitSelf,
-            turnChanged
+        const spectators2 = [...io.sockets.adapter.rooms.get(socket.roomId) || []].filter(
+            id => !room.players.includes(id)
+        );
+        spectators2.forEach(id => {
+            io.to(id).emit("spectatorAttack", {
+                kana: data.kana,
+                attacker,
+                defender,
+                hitDefenderIndexes,
+                hitSelfIndexes,
+                hitDefender,
+                hitSelf,
+                turnChanged
+            });
         });
 
         console.log("attack result:", data.kana, "defender:", hitDefender, "self:", hitSelf);
