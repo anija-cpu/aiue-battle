@@ -39,15 +39,13 @@ io.on("connection", (socket) => {
     // =====================
     // ルーム作成
     // =====================
-    socket.on("createRoom", (roomId) => {
-
+    socket.on("createRoom", (roomId, playerName) => {
         if (!roomId) return;
-
         // 同名部屋が無ければ作成
         if (!rooms[roomId]) {
-
             rooms[roomId] = {
                 players: [],
+                playerNames: {},
                 answers: {},
                 hits: {},
                 started: false
@@ -55,23 +53,18 @@ io.on("connection", (socket) => {
         }
 
         socket.join(roomId);
-
         socket.roomId = roomId;
-
         rooms[roomId].players.push(socket.id);
-
+        rooms[roomId].playerNames[socket.id] = playerName || "プレイヤー1";
         socket.emit("roomCreated", roomId);
-
         console.log("room created:", roomId);
     });
 
     // =====================
     // ルーム参加
     // =====================
-    socket.on("joinRoom", (roomId) => {
-
+    socket.on("joinRoom", (roomId, playerName) => {
         const room = rooms[roomId];
-
         if (!room) {
             socket.emit("errorMessage", "部屋が存在しません");
             return;
@@ -83,16 +76,15 @@ io.on("connection", (socket) => {
         }
 
         socket.join(roomId);
-
         socket.roomId = roomId;
-
         room.players.push(socket.id);
-
+        room.playerNames[socket.id] = playerName || "プレイヤー2";
         socket.emit("joinedRoom", roomId);
-
         io.to(roomId).emit("playerJoined");
-
         console.log("joined:", roomId);
+        if (room.players.length === 2) {
+            io.to(roomId).emit("ready");
+            }
 
 // 2人揃った
         if (room.players.length === 2) {
@@ -156,10 +148,18 @@ io.on("connection", (socket) => {
 const firstTurn = room.players[Math.floor(Math.random() * 2)];
 const player1 = room.players[0];
 const player2 = room.players[1];
-io.to(player1).emit("gameStart", { firstTurn, opponentLength: room.answers[player2].length });
-io.to(player2).emit("gameStart", { firstTurn, opponentLength: room.answers[player1].length });
-        }
-    });
+io.to(player1).emit("gameStart", {
+    firstTurn,
+    opponentLength: room.answers[player2].length,
+    myName: room.playerNames[player1],
+    opponentName: room.playerNames[player2]
+});
+io.to(player2).emit("gameStart", {
+    firstTurn,
+    opponentLength: room.answers[player1].length,
+    myName: room.playerNames[player2],
+    opponentName: room.playerNames[player1]
+});
 
     // =====================
     // 攻撃

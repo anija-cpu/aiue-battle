@@ -178,14 +178,13 @@ function addLog(message) {
 createRoomBtn.onclick = () => {
     const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
     roomInput.value = roomId;
-    socket.emit("createRoom", roomId);
+    const playerName = document.getElementById("nameInput").value || "プレイヤー1";
+    socket.emit("createRoom", roomId, playerName);
 };
 
-// =====================
-// ルーム参加
-// =====================
 joinRoomBtn.onclick = () => {
-    socket.emit("joinRoom", roomInput.value);
+    const playerName = document.getElementById("nameInput2").value || "プレイヤー2";
+    socket.emit("joinRoom", roomInput.value, playerName);
 };
 
 // =====================
@@ -244,6 +243,8 @@ checkButton.onclick = () => {
 socket.on("gameStart", (data) => {
     buildBattleCards(data.opponentLength);
     buildMyCards();
+    document.getElementById("myName").textContent = `自分：${data.myName}`;
+    document.getElementById("opponentName").textContent = `相手：${data.opponentName}`;
     showScreen("screenBattle");
     myTurn = data.firstTurn === socket.id;
     updateTurnDisplay();
