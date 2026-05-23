@@ -94,22 +94,23 @@ io.on("connection", (socket) => {
 
         console.log("joined:", roomId);
 
-        // 2人揃った
+// 2人揃った
         if (room.players.length === 2) {
             io.to(roomId).emit("ready");
         }
-        // =====================
-// お題選択
-// =====================
-socket.on("selectTheme", (theme) => {
+    });
 
-    const room = rooms[socket.roomId];
-    if (!room) return;
-    if (room.themeSelected) return; // すでに選択済みなら無視
+    // =====================
+    // お題選択
+    // =====================
+    socket.on("selectTheme", (theme) => {
 
-    room.themeSelected = true;
-    io.to(socket.roomId).emit("themeDecided", { theme });
-});
+        const room = rooms[socket.roomId];
+        if (!room) return;
+        if (room.themeSelected) return;
+
+        room.themeSelected = true;
+        io.to(socket.roomId).emit("themeDecided", { theme });
     });
 
     // =====================
