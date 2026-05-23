@@ -130,19 +130,19 @@ io.on("connection", (socket) => {
                 myName: room.playerNames[player2],
                 opponentName: room.playerNames[player1]
             });
-            // 観戦者へ（プレイヤー以外）
+            // 観戦者へ
             const spectators = [...io.sockets.adapter.rooms.get(socket.roomId) || []].filter(
                 id => !room.players.includes(id)
-                );
-                spectators.forEach(id => {
-                    io.to(id).emit("spectatorGameStart", {
-                        player1,
-                        player2,
-                        name1: room.playerNames[player1],
-                        name2: room.playerNames[player2],
-                        length1: room.answers[player1].length,
-                        length2: room.answers[player2].length
-                    });
+            );
+            spectators.forEach(id => {
+                io.to(id).emit("spectatorGameStart", {
+                    player1,
+                    player2,
+                    name1: room.playerNames[player1],
+                    name2: room.playerNames[player2],
+                    length1: room.answers[player1].length,
+                    length2: room.answers[player2].length
+                });
             });
             console.log("game started:", socket.roomId);
         }
@@ -208,7 +208,7 @@ io.on("connection", (socket) => {
             turnChanged
         });
 
-        // 観戦者へ
+        // 観戦者へ（players配列も一緒に送る ← バグ修正①）
         const spectators2 = [...io.sockets.adapter.rooms.get(socket.roomId) || []].filter(
             id => !room.players.includes(id)
         );
@@ -217,6 +217,7 @@ io.on("connection", (socket) => {
                 kana: data.kana,
                 attacker,
                 defender,
+                players: room.players,        // ← 追加
                 hitDefenderIndexes,
                 hitSelfIndexes,
                 hitDefender,
@@ -235,11 +236,18 @@ io.on("connection", (socket) => {
         });
 
         if (winAttacker || winDefender) {
-            io.to(socket.roomId).emit("gameEnd", {
-                winner: winAttacker ? attacker : defender
+            const winner = winAttacker ? attacker : defender;
+            io.to(socket.roomId).emit("gameEnd", { winner });
+
+            // 観戦者にも終了通知（バグ修正②）
+            spectators2.forEach(id => {
+                io.to(id).emit("spectatorGameEnd", {
+                    winnerName: room.playerNames[winner]
+                });
             });
+
             room.started = false;
-            console.log("game end");
+            console.log("game end, winner:", room.playerNames[winner]);
         }
     });
 
