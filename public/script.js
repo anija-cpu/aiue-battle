@@ -394,6 +394,7 @@ socket.on("waitingRematch", () => {
 // socket：再戦開始
 // =====================
 socket.on("rematchReady", () => {
+    checkButton.disabled = false;
     usedKana = [];
     currentIndex = 0;
     answer = [];
