@@ -277,6 +277,11 @@ socket.on("attackResult", (data) => {
     }
 
     myTurn = !data.turnChanged;
+    if (data.turnChanged) {
+    document.getElementById("keyboardArea2").classList.add("disabled");
+} else {
+    document.getElementById("keyboardArea2").classList.remove("disabled");
+}
 });
 
 // =====================
