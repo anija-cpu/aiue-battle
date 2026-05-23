@@ -76,3 +76,14 @@ button {
     height: 50px;
     font-size: 18px;
 }
+#battleLog {
+    margin: 20px auto;
+    width: 400px;
+    max-height: 200px;
+    overflow-y: auto;
+    background: #333;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 14px;
+    text-align: left;
+}

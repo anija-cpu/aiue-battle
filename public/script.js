@@ -111,7 +111,6 @@ function buildSpecialKeyboard(container, mode) {
         btn.textContent = kana;
         btn.onclick = () => {
             if (mode === "input") inputKana(kana);
-            // バトル時はDEL・×・ー押せない
         };
         container.appendChild(btn);
     });
@@ -120,7 +119,6 @@ function buildSpecialKeyboard(container, mode) {
 buildKeyboard(keyboard, "input");
 buildSpecialKeyboard(specialKeyboard, "input");
 buildKeyboard(keyboard2, "battle");
-// バトル画面には特殊キー不要なので生成しない
 
 // =====================
 // バトル画面：相手カード生成
@@ -135,6 +133,7 @@ function buildBattleCards(length) {
         battleCards.appendChild(card);
     }
 }
+
 function buildMyCards() {
     const myCards = document.getElementById("myCards");
     myCards.innerHTML = "";
@@ -152,6 +151,17 @@ function buildMyCards() {
 // =====================
 function updateTurnDisplay() {
     result.textContent = myTurn ? "あなたのターン！" : "相手のターン...";
+}
+
+// =====================
+// ログ追加
+// =====================
+function addLog(message) {
+    const log = document.getElementById("battleLog");
+    const line = document.createElement("p");
+    line.style.margin = "2px 0";
+    line.textContent = message;
+    log.prepend(line);
 }
 
 // =====================
@@ -204,10 +214,8 @@ checkButton.onclick = () => {
 
 // =====================
 // socket：ゲーム開始
-// （先攻＝部屋作成者、後攻＝参加者）
 // =====================
 socket.on("gameStart", (data) => {
-    console.log("gameStart data:", data);
     buildBattleCards(data.opponentLength);
     buildMyCards();
     showScreen("screenBattle");
@@ -219,12 +227,10 @@ socket.on("gameStart", (data) => {
 // socket：攻撃結果（自分が攻撃）
 // =====================
 socket.on("attackResult", (data) => {
-    // 相手カード更新
     data.hitIndexes.forEach(i => {
         const card = document.getElementById("bc-" + i);
         if (card) card.textContent = data.kana;
     });
-    // 自爆カード更新
     data.hitSelfIndexes.forEach(i => {
         const card = document.getElementById("mc-" + i);
         if (card) card.textContent = data.kana;
@@ -232,30 +238,34 @@ socket.on("attackResult", (data) => {
 
     if (data.hitSelf && data.hit) {
         result.textContent = "ヒット！でも自爆... ターン交代";
+        addLog(`⚔️ 自分→「${data.kana}」ヒット＋自爆 ターン交代`);
     } else if (data.hitSelf) {
         result.textContent = "自爆！ターン交代";
+        addLog(`💥 自分→「${data.kana}」自爆 ターン交代`);
     } else if (data.hit) {
         result.textContent = "ヒット！続けて攻撃！";
+        addLog(`⚔️ 自分→「${data.kana}」ヒット！`);
     } else {
         result.textContent = "ミス... ターン交代";
+        addLog(`❌ 自分→「${data.kana}」ミス ターン交代`);
     }
 
     myTurn = !data.turnChanged;
 });
 
+// =====================
+// socket：被弾（相手が攻撃）
+// =====================
 socket.on("attacked", (data) => {
-    // 相手の自爆で自分のカードが開く
     data.hitSelfIndexes.forEach(i => {
         const card = document.getElementById("bc-" + i);
         if (card) card.textContent = data.kana;
     });
-    // 自分が被弾
     data.hitIndexes.forEach(i => {
         const card = document.getElementById("mc-" + i);
         if (card) card.textContent = data.kana;
     });
 
-    // 使用済みキーをグレーに
     const btns = keyboard2.querySelectorAll("button");
     btns.forEach(btn => {
         if (btn.textContent === data.kana) {
@@ -263,10 +273,21 @@ socket.on("attacked", (data) => {
             btn.style.backgroundColor = "gray";
         }
     });
-    
+
+    if (data.hitSelf && data.hit) {
+        addLog(`🛡️ 相手→「${data.kana}」ヒット＋自爆 あなたのターンへ`);
+    } else if (data.hitSelf) {
+        addLog(`💥 相手→「${data.kana}」自爆 あなたのターンへ`);
+    } else if (data.hit) {
+        addLog(`🛡️ 相手→「${data.kana}」被弾！`);
+    } else {
+        addLog(`❌ 相手→「${data.kana}」ミス あなたのターンへ`);
+    }
+
     myTurn = data.turnChanged;
     updateTurnDisplay();
 });
+
 // =====================
 // socket：ゲーム終了
 // =====================
@@ -274,23 +295,29 @@ socket.on("gameEnd", (data) => {
     if (data.winner === socket.id) {
         wins++;
         result.textContent = "🎉 あなたの勝ち！";
+        addLog("🎉 ゲーム終了 - あなたの勝ち！");
     } else {
         losses++;
         result.textContent = "💀 あなたの負け...";
+        addLog("💀 ゲーム終了 - あなたの負け...");
     }
     myTurn = false;
 
-    // 勝敗数更新
     document.getElementById("score").textContent = `${wins}勝 ${losses}敗`;
-
-    // 再戦ボタン表示
     document.getElementById("rematchBtn").hidden = false;
 });
+
+// =====================
+// socket：再戦待ち
+// =====================
 socket.on("waitingRematch", () => {
     result.textContent = "相手の再戦待ち...";
     document.getElementById("rematchBtn").hidden = true;
 });
 
+// =====================
+// socket：再戦開始
+// =====================
 socket.on("rematchReady", () => {
     usedKana = [];
     currentIndex = 0;
@@ -304,10 +331,15 @@ socket.on("rematchReady", () => {
     inputs.forEach(i => i.value = "");
     updateSelection();
 
+    document.getElementById("battleLog").innerHTML = "";
     document.getElementById("rematchBtn").hidden = true;
+    document.getElementById("scoreInput").textContent = `${wins}勝 ${losses}敗`;
     showScreen("screenInput");
 });
 
+// =====================
+// 再戦ボタン
+// =====================
 document.getElementById("rematchBtn").onclick = () => {
     socket.emit("rematch");
 };
