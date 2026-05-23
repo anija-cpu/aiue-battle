@@ -62,6 +62,30 @@ io.on("connection", (socket) => {
     });
 
     // =====================
+    // 観戦参加
+    // =====================
+    socket.on("watchRoom", (roomId, playerName) => {
+        const room = rooms[roomId];
+        if (!room) {
+            socket.emit("errorMessage", "部屋が存在しません");
+            return;
+        }
+        socket.join(roomId);
+        socket.roomId = roomId;
+        socket.isSpectator = true;
+        socket.spectatorName = playerName || "観戦者";
+        socket.emit("joinedAsSpectator", {
+            roomId,
+            playerNames: room.playerNames,
+            players: room.players,
+            hits: room.hits,
+            answers: room.answers,
+            started: room.started
+        });
+        console.log("spectator joined:", roomId);
+    });
+
+    // =====================
     // お題選択
     // =====================
     socket.on("selectTheme", (theme) => {
@@ -105,6 +129,15 @@ io.on("connection", (socket) => {
                 opponentLength: room.answers[player1].length,
                 myName: room.playerNames[player2],
                 opponentName: room.playerNames[player1]
+            });
+            // 観戦者へ
+            socket.to(socket.roomId).emit("spectatorGameStart", {
+                player1,
+                player2,
+                name1: room.playerNames[player1],
+                name2: room.playerNames[player2],
+                length1: room.answers[player1].length,
+                length2: room.answers[player2].length
             });
             console.log("game started:", socket.roomId);
         }
@@ -167,6 +200,18 @@ io.on("connection", (socket) => {
             hitIndexes: hitDefenderIndexes,
             hitSelf,
             hitSelfIndexes,
+            turnChanged
+        });
+
+        // 観戦者へ
+        socket.to(socket.roomId).emit("spectatorAttack", {
+            kana: data.kana,
+            attacker,
+            defender,
+            hitDefenderIndexes,
+            hitSelfIndexes,
+            hitDefender,
+            hitSelf,
             turnChanged
         });
 

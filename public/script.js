@@ -35,7 +35,7 @@ let losses = 0;
 // 画面切り替え
 // =====================
 function showScreen(id) {
-    ["screenRoom","screenWait","screenTheme","screenInput","screenBattle"].forEach(s => {
+    ["screenRoom","screenWait","screenTheme","screenInput","screenBattle","screenWatch"].forEach(s => {
         document.getElementById(s).hidden = (s !== id);
     });
 }
@@ -422,6 +422,87 @@ socket.on("rematchReady", () => {
 document.getElementById("rematchBtn").onclick = () => {
     socket.emit("rematch");
 };
+
+// =====================
+// 観戦参加
+// =====================
+document.getElementById("watchRoom").onclick = () => {
+    const playerName = document.getElementById("nameInput2").value || "観戦者";
+    socket.emit("watchRoom", roomInput.value, playerName);
+};
+
+socket.on("joinedAsSpectator", (data) => {
+    document.getElementById("watchInfo").textContent = `部屋ID: ${data.roomId} を観戦中`;
+    showScreen("screenWatch");
+});
+
+// =====================
+// 観戦：ゲーム開始
+// =====================
+socket.on("spectatorGameStart", (data) => {
+    // プレイヤー1のカード
+    const w1 = document.getElementById("watchCards1");
+    w1.innerHTML = "";
+    for (let i = 0; i < data.length1; i++) {
+        const card = document.createElement("div");
+        card.classList.add("card");
+        card.textContent = "？";
+        card.id = "wc1-" + i;
+        w1.appendChild(card);
+    }
+    // プレイヤー2のカード
+    const w2 = document.getElementById("watchCards2");
+    w2.innerHTML = "";
+    for (let i = 0; i < data.length2; i++) {
+        const card = document.createElement("div");
+        card.classList.add("card");
+        card.textContent = "？";
+        card.id = "wc2-" + i;
+        w2.appendChild(card);
+    }
+    document.getElementById("watchPlayer1Name").textContent = data.name1;
+    document.getElementById("watchPlayer2Name").textContent = data.name2;
+    showScreen("screenWatch");
+});
+
+// =====================
+// 観戦：攻撃更新
+// =====================
+socket.on("spectatorAttack", (data) => {
+    const attackerIsP1 = data.attacker === data.players?.[0];
+
+    // 相手カード更新
+    data.hitDefenderIndexes.forEach(i => {
+        const id = attackerIsP1 ? "wc2-" + i : "wc1-" + i;
+        const card = document.getElementById(id);
+        if (card) card.textContent = data.kana;
+    });
+
+    // 自爆カード更新
+    data.hitSelfIndexes.forEach(i => {
+        const id = attackerIsP1 ? "wc1-" + i : "wc2-" + i;
+        const card = document.getElementById(id);
+        if (card) card.textContent = data.kana;
+    });
+
+    // ログ
+    const log = document.getElementById("watchLog");
+    const line = document.createElement("p");
+    const attackerName = attackerIsP1
+        ? document.getElementById("watchPlayer1Name").textContent
+        : document.getElementById("watchPlayer2Name").textContent;
+
+    if (data.hitSelf && data.hitDefender) {
+        line.textContent = `⚔️ ${attackerName}→「${data.kana}」ヒット＋自爆`;
+    } else if (data.hitSelf) {
+        line.textContent = `💥 ${attackerName}→「${data.kana}」自爆`;
+    } else if (data.hitDefender) {
+        line.textContent = `⚔️ ${attackerName}→「${data.kana}」ヒット！`;
+    } else {
+        line.textContent = `❌ ${attackerName}→「${data.kana}」ミス`;
+    }
+    log.prepend(line);
+});
 
 // =====================
 // socket：エラー
