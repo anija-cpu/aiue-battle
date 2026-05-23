@@ -262,19 +262,23 @@ socket.on("attackResult", (data) => {
         if (card) card.textContent = data.kana;
     });
 
-    if (data.hitSelf && data.hit) {
-        result.textContent = "ヒット！でも自爆... ターン交代";
-        addLog(`⚔️ 自分→「${data.kana}」ヒット＋自爆 ターン交代`);
-    } else if (data.hitSelf) {
-        result.textContent = "自爆！ターン交代";
-        addLog(`💥 自分→「${data.kana}」自爆 ターン交代`);
-    } else if (data.hit) {
-        result.textContent = "ヒット！続けて攻撃！";
-        addLog(`⚔️ 自分→「${data.kana}」ヒット！`);
-    } else {
-        result.textContent = "ミス... ターン交代";
-        addLog(`❌ 自分→「${data.kana}」ミス ターン交代`);
-    }
+if (data.hitSelf && data.hit) {
+    result.textContent = "ヒット！でも自爆... ターン交代";
+    result.style.color = "#888888";
+    addLog(`⚔️ 自分→「${data.kana}」ヒット＋自爆 ターン交代`);
+} else if (data.hitSelf) {
+    result.textContent = "自爆！ターン交代";
+    result.style.color = "#888888";
+    addLog(`💥 自分→「${data.kana}」自爆 ターン交代`);
+} else if (data.hit) {
+    result.textContent = "ヒット！続けて攻撃！";
+    result.style.color = "#00ff88";
+    addLog(`⚔️ 自分→「${data.kana}」ヒット！`);
+} else {
+    result.textContent = "ミス... ターン交代";
+    result.style.color = "#888888";
+    addLog(`❌ 自分→「${data.kana}」ミス ターン交代`);
+}
 
     myTurn = !data.turnChanged;
     if (data.turnChanged) {
