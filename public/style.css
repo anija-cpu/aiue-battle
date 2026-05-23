@@ -226,3 +226,59 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
 #myName, #opponentName, #watchPlayer1Name, #watchPlayer2Name {
     font-size: 16px; font-weight: bold; margin: 8px 0 0; color: #5a2d00;
 }
+
+/* ==============================
+   観戦キーボード
+   ============================== */
+#watchKeyboardArea {
+    display: flex;
+    justify-content: center;
+    margin-top: 24px;
+    padding: 16px;
+    background: rgba(255,248,235,0.7);
+    border-radius: 12px;
+}
+
+#watchKeyboard {
+    display: grid;
+    grid-template-columns: repeat(10, 48px);
+    gap: 5px;
+}
+
+#watchKeyboard button {
+    width: 48px;
+    height: 48px;
+    font-size: 17px;
+    padding: 0;
+    background: #fff8ef !important;
+    color: #3b1f0a !important;
+    border: 2px solid #c8965a !important;
+    border-radius: 7px;
+    box-shadow: 0 3px 0 #a07040 !important;
+    margin: 0;
+    cursor: default;
+    transition: background 0.2s, color 0.2s;
+}
+
+/* お題表示 */
+#watchTheme {
+    font-size: 18px;
+    font-weight: bold;
+    color: #6b3a10;
+    margin: 4px 0 12px;
+}
+
+/* 観戦ログ */
+#watchLog {
+    max-height: 200px;
+    overflow-y: auto;
+    margin: 16px auto;
+    max-width: 400px;
+    background: rgba(255,248,235,0.8);
+    border: 1px solid #c8965a;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    text-align: left;
+    color: #3b1f0a;
+}

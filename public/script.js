@@ -30,7 +30,7 @@ let myTurn = false;
 let wins = 0;
 let losses = 0;
 
-// 観戦用：player1/player2のIDを保持
+// 観戦用
 let watchPlayer1Id = null;
 let watchPlayer2Id = null;
 
@@ -119,9 +119,25 @@ function buildSpecialKeyboard(container, mode) {
     });
 }
 
+// 観戦用キーボード（クリック不可・色変えのみ）
+function buildWatchKeyboard(container) {
+    kanaList.forEach(kana => {
+        if (!kana) {
+            container.appendChild(document.createElement("div"));
+            return;
+        }
+        const btn = document.createElement("button");
+        btn.textContent = kana;
+        btn.disabled = true;
+        btn.id = "wk-" + kana;
+        container.appendChild(btn);
+    });
+}
+
 buildKeyboard(keyboard, "input");
 buildSpecialKeyboard(specialKeyboard, "input");
 buildKeyboard(keyboard2, "battle");
+buildWatchKeyboard(document.getElementById("watchKeyboard"));
 
 // =====================
 // バトル画面：相手カード生成
@@ -190,25 +206,16 @@ joinRoomBtn.onclick = () => {
     socket.emit("joinRoom", roomInput.value, playerName);
 };
 
-// =====================
-// socket：ルーム作成完了
-// =====================
 socket.on("roomCreated", (roomId) => {
     waitRoomId.textContent = "部屋ID: " + roomId;
     showScreen("screenWait");
 });
 
-// =====================
-// socket：ルーム参加完了
-// =====================
 socket.on("joinedRoom", (roomId) => {
     waitRoomId.textContent = "部屋ID: " + roomId + " に参加しました";
     showScreen("screenWait");
 });
 
-// =====================
-// socket：2人揃った
-// =====================
 socket.on("ready", () => {
     showScreen("screenTheme");
 });
@@ -218,21 +225,15 @@ socket.on("ready", () => {
 // =====================
 checkButton.onclick = () => {
     answer = Array.from(inputs).map(i => i.value || "×");
-    
     const validCount = answer.filter(k => k !== "×").length;
     if (validCount < 2) {
         alert("2文字以上入力してください！");
         return;
     }
-
     socket.emit("setAnswer", answer);
-
     inputs.forEach(i => {
-        if (i.value && i.value !== "×") {
-            i.value = "□";
-        }
+        if (i.value && i.value !== "×") i.value = "□";
     });
-
     checkButton.disabled = true;
     result.textContent = "単語を設定しました！相手の入力を待っています...";
 };
@@ -254,12 +255,10 @@ socket.on("gameStart", (data) => {
 // socket：攻撃結果（自分が攻撃）
 // =====================
 socket.on("attackResult", (data) => {
-    // 相手カード（bc）を更新
     data.hitIndexes.forEach(i => {
         const card = document.getElementById("bc-" + i);
         if (card) card.textContent = data.kana;
     });
-    // 自分カード（mc）を更新（自爆）
     data.hitSelfIndexes.forEach(i => {
         const card = document.getElementById("mc-" + i);
         if (card) card.textContent = data.kana;
@@ -295,12 +294,10 @@ socket.on("attackResult", (data) => {
 // socket：被弾（相手が攻撃）
 // =====================
 socket.on("attacked", (data) => {
-    // 相手カード（bc）→ 相手の自爆（hitSelfIndexes）
     data.hitSelfIndexes.forEach(i => {
         const card = document.getElementById("bc-" + i);
         if (card) card.textContent = data.kana;
     });
-    // 自分カード（mc）→ 被弾（hitIndexes）
     data.hitIndexes.forEach(i => {
         const card = document.getElementById("mc-" + i);
         if (card) card.textContent = data.kana;
@@ -342,7 +339,6 @@ socket.on("gameEnd", (data) => {
         addLog("💀 ゲーム終了 - あなたの負け...");
     }
     myTurn = false;
-
     document.getElementById("score").textContent = `${wins}勝 ${losses}敗`;
     document.getElementById("rematchBtn").hidden = false;
 });
@@ -368,25 +364,25 @@ document.getElementById("freeThemeBtn").onclick = () => {
     document.getElementById("themeWait").textContent = "選択中...";
 };
 
+// お題確定（プレイヤー・観戦者共通）
 socket.on("themeDecided", (data) => {
-    const display = data.theme === "自由"
-        ? "自由入力"
-        : `お題：${data.theme}`;
+    const display = data.theme === "自由" ? "自由入力" : `お題：${data.theme}`;
     document.getElementById("themeDisplay").textContent = display;
+    document.getElementById("watchTheme").textContent = display;
+
+    // 観戦者は画面遷移しない
+    if (!document.getElementById("screenWatch").hidden) return;
     showScreen("screenInput");
 });
 
 // =====================
-// socket：再戦待ち
+// 再戦
 // =====================
 socket.on("waitingRematch", () => {
     result.textContent = "相手の再戦待ち...";
     document.getElementById("rematchBtn").hidden = true;
 });
 
-// =====================
-// socket：再戦開始
-// =====================
 socket.on("rematchReady", () => {
     checkButton.disabled = false;
     usedKana = [];
@@ -398,6 +394,13 @@ socket.on("rematchReady", () => {
         btn.style.backgroundColor = "";
     });
 
+    // 観戦キーボードもリセット
+    document.querySelectorAll("#watchKeyboard button").forEach(btn => {
+        btn.style.backgroundColor = "";
+        btn.style.color = "";
+        btn.style.border = "";
+    });
+
     inputs.forEach(i => i.value = "");
     updateSelection();
 
@@ -406,6 +409,7 @@ socket.on("rematchReady", () => {
     document.getElementById("scoreInput").textContent = `${wins}勝 ${losses}敗`;
     document.getElementById("themeDisplay").textContent = "";
     document.getElementById("themeWait").textContent = "";
+    document.getElementById("watchTheme").textContent = "";
     showScreen("screenTheme");
 });
 
@@ -423,6 +427,13 @@ document.getElementById("watchRoom").onclick = () => {
 
 socket.on("joinedAsSpectator", (data) => {
     document.getElementById("watchInfo").textContent = `部屋ID: ${data.roomId} を観戦中`;
+
+    // 参加時点でお題がすでに決まっていれば表示
+    if (data.theme) {
+        const display = data.theme === "自由" ? "自由入力" : `お題：${data.theme}`;
+        document.getElementById("watchTheme").textContent = display;
+    }
+
     showScreen("screenWatch");
 });
 
@@ -430,9 +441,14 @@ socket.on("joinedAsSpectator", (data) => {
 // 観戦：ゲーム開始
 // =====================
 socket.on("spectatorGameStart", (data) => {
-    // player1/player2のIDを記憶（バグ修正③）
     watchPlayer1Id = data.player1;
     watchPlayer2Id = data.player2;
+
+    // お題表示
+    if (data.theme) {
+        const display = data.theme === "自由" ? "自由入力" : `お題：${data.theme}`;
+        document.getElementById("watchTheme").textContent = display;
+    }
 
     const w1 = document.getElementById("watchCards1");
     w1.innerHTML = "";
@@ -458,27 +474,42 @@ socket.on("spectatorGameStart", (data) => {
 });
 
 // =====================
-// 観戦：攻撃更新（バグ修正④）
+// 観戦：攻撃更新
 // =====================
 socket.on("spectatorAttack", (data) => {
-    // players配列の先頭がplayer1と一致するか判定
     const attackerIsP1 = data.attacker === data.players[0];
 
-    // 攻撃者の相手（defender）のカードにヒット表示
+    // defender（相手）のカードにヒット表示
     data.hitDefenderIndexes.forEach(i => {
         const id = attackerIsP1 ? "wc2-" + i : "wc1-" + i;
         const card = document.getElementById(id);
         if (card) card.textContent = data.kana;
     });
 
-    // 攻撃者自身のカードに自爆表示
+    // attacker（自分）のカードに自爆表示
     data.hitSelfIndexes.forEach(i => {
         const id = attackerIsP1 ? "wc1-" + i : "wc2-" + i;
         const card = document.getElementById(id);
         if (card) card.textContent = data.kana;
     });
 
-    // ログ：攻撃者の名前を正しく取得
+    // 観戦キーボードに色付け
+    const wkBtn = document.getElementById("wk-" + data.kana);
+    if (wkBtn) {
+        if (data.hitDefender) {
+            // ヒット → 緑
+            wkBtn.style.backgroundColor = "#27ae60";
+            wkBtn.style.color = "#fff";
+            wkBtn.style.borderColor = "#1e8449";
+        } else {
+            // ミス → グレー
+            wkBtn.style.backgroundColor = "#aaa";
+            wkBtn.style.color = "#666";
+            wkBtn.style.borderColor = "#999";
+        }
+    }
+
+    // ログ
     const log = document.getElementById("watchLog");
     const line = document.createElement("p");
     const attackerName = attackerIsP1
@@ -498,7 +529,7 @@ socket.on("spectatorAttack", (data) => {
 });
 
 // =====================
-// 観戦：ゲーム終了（バグ修正⑤）
+// 観戦：ゲーム終了
 // =====================
 socket.on("spectatorGameEnd", (data) => {
     const log = document.getElementById("watchLog");
@@ -508,8 +539,7 @@ socket.on("spectatorGameEnd", (data) => {
     line.textContent = `🏆 ${data.winnerName} の勝利！`;
     log.prepend(line);
 
-    const info = document.getElementById("watchInfo");
-    info.textContent = `🏆 ${data.winnerName} の勝利！`;
+    document.getElementById("watchInfo").textContent = `🏆 ${data.winnerName} の勝利！`;
 });
 
 // =====================

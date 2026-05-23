@@ -25,7 +25,8 @@ io.on("connection", (socket) => {
                 playerNames: {},
                 answers: {},
                 hits: {},
-                started: false
+                started: false,
+                theme: null
             };
         }
         socket.join(roomId);
@@ -80,7 +81,8 @@ io.on("connection", (socket) => {
             players: room.players,
             hits: room.hits,
             answers: room.answers,
-            started: room.started
+            started: room.started,
+            theme: room.theme          // ← 追加：参加時点のお題を渡す
         });
         console.log("spectator joined:", roomId);
     });
@@ -93,7 +95,8 @@ io.on("connection", (socket) => {
         if (!room) return;
         if (room.themeSelected) return;
         room.themeSelected = true;
-        io.to(socket.roomId).emit("themeDecided", { theme });
+        room.theme = theme;            // ← 追加：お題を記録
+        io.to(socket.roomId).emit("themeDecided", { theme }); // 観戦者にも届く
     });
 
     // =====================
@@ -141,7 +144,8 @@ io.on("connection", (socket) => {
                     name1: room.playerNames[player1],
                     name2: room.playerNames[player2],
                     length1: room.answers[player1].length,
-                    length2: room.answers[player2].length
+                    length2: room.answers[player2].length,
+                    theme: room.theme              // ← 追加
                 });
             });
             console.log("game started:", socket.roomId);
@@ -208,7 +212,7 @@ io.on("connection", (socket) => {
             turnChanged
         });
 
-        // 観戦者へ（players配列も一緒に送る ← バグ修正①）
+        // 観戦者へ
         const spectators2 = [...io.sockets.adapter.rooms.get(socket.roomId) || []].filter(
             id => !room.players.includes(id)
         );
@@ -217,7 +221,7 @@ io.on("connection", (socket) => {
                 kana: data.kana,
                 attacker,
                 defender,
-                players: room.players,        // ← 追加
+                players: room.players,
                 hitDefenderIndexes,
                 hitSelfIndexes,
                 hitDefender,
@@ -238,14 +242,11 @@ io.on("connection", (socket) => {
         if (winAttacker || winDefender) {
             const winner = winAttacker ? attacker : defender;
             io.to(socket.roomId).emit("gameEnd", { winner });
-
-            // 観戦者にも終了通知（バグ修正②）
             spectators2.forEach(id => {
                 io.to(id).emit("spectatorGameEnd", {
                     winnerName: room.playerNames[winner]
                 });
             });
-
             room.started = false;
             console.log("game end, winner:", room.playerNames[winner]);
         }
@@ -265,6 +266,7 @@ io.on("connection", (socket) => {
             room.started = false;
             room.rematchVotes = [];
             room.themeSelected = false;
+            room.theme = null;
             io.to(socket.roomId).emit("rematchReady");
         } else {
             socket.emit("waitingRematch");

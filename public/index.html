@@ -117,15 +117,19 @@
     </div>
 
     <!-- ⑤観戦画面 -->
-     <div id="screenWatch" hidden>
-    <h2>観戦中</h2>
-    <p id="watchInfo"></p>
-    <p id="watchPlayer1Name">プレイヤー1</p>
-    <div class="cards" id="watchCards1"></div>
-    <p id="watchPlayer2Name">プレイヤー2</p>
-    <div class="cards" id="watchCards2"></div>
-    <div id="watchLog"></div>
-</div>
+    <div id="screenWatch" hidden>
+        <h2>観戦中</h2>
+        <p id="watchInfo"></p>
+        <p id="watchTheme"></p>
+        <p id="watchPlayer1Name">プレイヤー1</p>
+        <div class="cards" id="watchCards1"></div>
+        <p id="watchPlayer2Name">プレイヤー2</p>
+        <div class="cards" id="watchCards2"></div>
+        <div id="watchLog"></div>
+        <div id="watchKeyboardArea">
+            <div id="watchKeyboard"></div>
+        </div>
+    </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
