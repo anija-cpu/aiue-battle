@@ -229,7 +229,7 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
     height: 48px;
     font-size: 17px;
     padding: 0;
-    background: #fff8ef !important;
+    background: #fff8ef;
     color: #3b1f0a !important;
     border: 2px solid #c8965a !important;
     border-radius: 7px;
