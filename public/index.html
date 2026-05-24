@@ -70,26 +70,26 @@
     <p id="themeWait"></p>
 </div>
 
-    <!-- ③単語入力画面 -->
-    <div id="screenInput" hidden>
-        <p id="scoreInput">0勝 0敗</p>
-        <p id="themeDisplay"></p>
-        <h2>単語を入力してください</h2>
-        <div class="cards">
-            <input class="card" maxlength="1">
-            <input class="card" maxlength="1">
-            <input class="card" maxlength="1">
-            <input class="card" maxlength="1">
-            <input class="card" maxlength="1">
-            <input class="card" maxlength="1">
-            <input class="card" maxlength="1">
-        </div>
-        <button id="checkButton">決定</button>
-        <div id="keyboardArea">
-            <div id="specialKeyboard"></div>
-            <div id="keyboard"></div>
-        </div>
+<!-- ③単語入力画面 -->
+<div id="screenInput" hidden>
+    <p id="scoreInput">0勝 0敗</p>
+    <p id="themeDisplay"></p>
+    <h2>単語を入力してください</h2>
+    <div class="cards">
+        <input class="card" maxlength="1">
+        <input class="card" maxlength="1">
+        <input class="card" maxlength="1">
+        <input class="card" maxlength="1">
+        <input class="card" maxlength="1">
+        <input class="card" maxlength="1">
+        <input class="card" maxlength="1">
     </div>
+    <button id="checkButton">決定</button>
+    <div id="keyboardArea">
+        <div id="specialKeyboard"></div>
+        <div id="keyboard"></div>
+    </div>
+</div>
 
 <!-- ④バトル画面 -->
 <div id="screenBattle" hidden>
@@ -106,24 +106,20 @@
     </div>
 </div>
 
-    <!-- ⑤観戦画面 -->
-    <div id="screenWatch" hidden>
-        <h2>観戦中</h2>
-        <p id="watchInfo"></p>
-        <p id="watchTheme"></p>
-        <p id="watchPlayer1Name">プレイヤー1</p>
-        <div class="cards" id="watchCards1"></div>
-        <p id="watchPlayer2Name">プレイヤー2</p>
-        <div class="cards" id="watchCards2"></div>
-        <div id="watchLog"></div>
-        <div id="watchKeyboardArea">
-            <div id="watchKeyboard"></div>
-        </div>
+<!-- ⑤観戦画面（watchPlayersAreaに変更） -->
+<div id="screenWatch" hidden>
+    <h2>観戦中</h2>
+    <p id="watchInfo"></p>
+    <p id="watchTheme"></p>
+    <div id="watchPlayersArea"></div>
+    <div id="watchLog"></div>
+    <div id="watchKeyboardArea">
+        <div id="watchKeyboard"></div>
     </div>
+</div>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="script.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="script.js"></script>
 
 </body>
-
 </html>

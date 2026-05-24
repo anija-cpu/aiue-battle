@@ -34,6 +34,7 @@ let turnOrder = [];
 let players = [];
 let playerNames = {};
 let eliminated = [];
+let isSpectator = false; // ← 追加：観戦者フラグ
 
 // =====================
 // 画面切り替え
@@ -99,7 +100,10 @@ function buildKeyboard(container, mode) {
         }
         const btn = document.createElement("button");
         btn.textContent = kana;
-        if (mode === "watch") btn.id = "wk-" + kana;
+        if (mode === "watch") {
+            btn.id = "wk-" + kana;
+            btn.disabled = true;
+        }
         btn.onclick = () => {
             if (mode === "input") inputKana(kana);
             if (mode === "battle") attackKana(kana, btn);
@@ -168,7 +172,6 @@ function updateTurnDisplay() {
         result.style.color = "#c0392b";
         document.getElementById("keyboardArea2").classList.remove("disabled");
     } else {
-        const currentId = turnOrder.find(id => !eliminated.includes(id) && id !== socket.id);
         const currentName = playerNames[turnOrder.find(id => !eliminated.includes(id))] || "相手";
         result.textContent = `🛡️ ${currentName}のターン...`;
         result.style.color = "#888888";
@@ -205,11 +208,13 @@ createRoomBtn.onclick = () => {
     roomInput.value = roomId;
     const playerName = document.getElementById("nameInput").value || "プレイヤー1";
     isHost = true;
+    isSpectator = false;
     socket.emit("createRoom", roomId, playerName);
 };
 
 joinRoomBtn.onclick = () => {
     const playerName = document.getElementById("nameInput2").value || "プレイヤー";
+    isSpectator = false;
     socket.emit("joinRoom", roomInput.value, playerName);
 };
 
@@ -297,11 +302,9 @@ socket.on("gameStart", (data) => {
     showScreen("screenBattle");
     myTurn = data.firstTurn === socket.id;
 
-    // 自分のカードを表示
     answer.forEach((kana, i) => {
         const card = document.getElementById(`card-${socket.id}-${i}`);
-        if (card && kana !== "×") card.textContent = "？";
-        if (card && kana === "×") card.textContent = "×";
+        if (card) card.textContent = kana === "×" ? "×" : "？";
     });
 
     updateTurnDisplay();
@@ -312,7 +315,6 @@ socket.on("gameStart", (data) => {
 // socket：攻撃結果（自分が攻撃）
 // =====================
 socket.on("attackResult", (data) => {
-    // カード更新
     Object.entries(data.hitResults).forEach(([id, indexes]) => {
         indexes.forEach(i => {
             const card = document.getElementById(`card-${id}-${i}`);
@@ -320,7 +322,6 @@ socket.on("attackResult", (data) => {
         });
     });
 
-    // ログ
     if (data.hitSelf && data.hitAny) {
         addLog(`⚔️ 自分→「${data.kana}」ヒット＋自爆 ターン交代`);
         result.textContent = "ヒット！でも自爆... ターン交代";
@@ -339,7 +340,6 @@ socket.on("attackResult", (data) => {
         result.style.color = "#888";
     }
 
-    // 脱落
     data.newlyEliminated.forEach(id => {
         eliminated.push(id);
         markEliminated(id);
@@ -359,7 +359,6 @@ socket.on("attackResult", (data) => {
 // socket：被弾（他プレイヤーが攻撃）
 // =====================
 socket.on("attacked", (data) => {
-    // カード更新
     Object.entries(data.hitResults).forEach(([id, indexes]) => {
         indexes.forEach(i => {
             const card = document.getElementById(`card-${id}-${i}`);
@@ -367,7 +366,6 @@ socket.on("attacked", (data) => {
         });
     });
 
-    // キーボードグレーアウト
     keyboard2.querySelectorAll("button").forEach(btn => {
         if (btn.textContent === data.kana) {
             btn.disabled = true;
@@ -375,7 +373,6 @@ socket.on("attacked", (data) => {
         }
     });
 
-    // ログ
     const attackerName = playerNames[data.attacker] || "?";
     if (data.hitSelf && data.hitAny) {
         addLog(`⚔️ ${attackerName}→「${data.kana}」ヒット＋自爆`);
@@ -387,7 +384,6 @@ socket.on("attacked", (data) => {
         addLog(`❌ ${attackerName}→「${data.kana}」ミス`);
     }
 
-    // 脱落
     data.newlyEliminated.forEach(id => {
         eliminated.push(id);
         markEliminated(id);
@@ -445,12 +441,12 @@ document.getElementById("freeThemeBtn").onclick = () => {
     document.getElementById("themeWait").textContent = "選択中...";
 };
 
-// お題確定
+// お題確定（バグ修正①：isSpectatorフラグで判定）
 socket.on("themeDecided", (data) => {
     const display = `お題：${data.theme}`;
     document.getElementById("themeDisplay").textContent = display;
     document.getElementById("watchTheme").textContent = display;
-    if (!document.getElementById("screenWatch").hidden) return;
+    if (isSpectator) return; // 観戦者は画面遷移しない
     showScreen("screenInput");
 });
 
@@ -512,6 +508,7 @@ document.getElementById("rematchBtn").onclick = () => {
 // =====================
 document.getElementById("watchRoom").onclick = () => {
     const playerName = document.getElementById("nameInput2").value || "観戦者";
+    isSpectator = true; // ← 観戦者フラグをセット
     socket.emit("watchRoom", roomInput.value, playerName);
 };
 
@@ -524,19 +521,14 @@ socket.on("joinedAsSpectator", (data) => {
 });
 
 // =====================
-// 観戦：ゲーム開始
+// 観戦：ゲーム開始（バグ修正②：watchAreaを専用divにする）
 // =====================
 socket.on("spectatorGameStart", (data) => {
-    const w1 = document.getElementById("watchCards1");
-    const w2 = document.getElementById("watchCards2");
-    w1.innerHTML = "";
-    w2.innerHTML = "";
+    const watchArea = document.getElementById("watchPlayersArea"); // ← 専用divを使う
 
-    // 観戦画面も全プレイヤー表示に対応
-    const watchArea = document.getElementById("watchCards1").parentElement;
     watchArea.innerHTML = "";
 
-    data.players.forEach((id, idx) => {
+    data.players.forEach(id => {
         const wrapper = document.createElement("div");
         wrapper.id = "watchArea-" + id;
 
@@ -560,7 +552,7 @@ socket.on("spectatorGameStart", (data) => {
     });
 
     document.getElementById("watchTheme").textContent = `お題：${data.theme}`;
-    showScreen("screenWatch");
+    showScreen("screenWatch"); // 観戦画面に遷移
 });
 
 // =====================
@@ -574,7 +566,6 @@ socket.on("spectatorAttack", (data) => {
         });
     });
 
-    // 観戦キーボードに色付け
     const wkBtn = document.getElementById("wk-" + data.kana);
     if (wkBtn) {
         wkBtn.style.backgroundColor = data.hitAny ? "#27ae60" : "#aaa";
@@ -582,7 +573,6 @@ socket.on("spectatorAttack", (data) => {
         wkBtn.style.borderColor = data.hitAny ? "#1e8449" : "#999";
     }
 
-    // ログ
     const log = document.getElementById("watchLog");
     const line = document.createElement("p");
     const attackerName = data.playerNames[data.attacker] || "?";
@@ -597,7 +587,6 @@ socket.on("spectatorAttack", (data) => {
     }
     log.prepend(line);
 
-    // 脱落表示
     if (data.newlyEliminated) {
         data.newlyEliminated.forEach(id => {
             const area = document.getElementById("watchArea-" + id);
