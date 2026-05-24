@@ -34,7 +34,8 @@ let turnOrder = [];
 let players = [];
 let playerNames = {};
 let eliminated = [];
-let isSpectator = false; // ← 追加：観戦者フラグ
+let isSpectator = false;
+let winCounts = {};
 
 // =====================
 // 画面切り替え
@@ -208,6 +209,12 @@ function updateTurnDisplay(currentTurnId) {
         result.style.color = "#888888";
         document.getElementById("keyboardArea2").classList.add("disabled");
     }
+    function updateScoreDisplay(playersArr, namesObj) {
+        const score = document.getElementById("score");
+        score.innerHTML = playersArr
+            .map(id => `${namesObj[id]}：${winCounts[id] || 0}勝`)
+            .join("　");
+        }
 }
 
 // =====================
@@ -332,6 +339,9 @@ socket.on("gameStart", (data) => {
     buildAllPlayerCards(data.players, data.playerNames, data.opponentLengths, socket.id);
     showScreen("screenBattle");
     myTurn = data.firstTurn === socket.id;
+    data.players.forEach(id => {
+       if (winCounts[id] === undefined) winCounts[id] = 0;
+    }); 
 
     answer.forEach((kana, i) => {
         const card = document.getElementById(`card-${socket.id}-${i}`);
@@ -442,6 +452,9 @@ socket.on("attacked", (data) => {
 // socket：ゲーム終了
 // =====================
 socket.on("gameEnd", (data) => {
+    winCounts[data.winner] = (winCounts[data.winner] || 0) + 1;
+    updateScoreDisplay(players, playerNames);
+
     if (data.winner === socket.id) {
         wins++;
         result.textContent = "🎉 あなたの勝ち！";
