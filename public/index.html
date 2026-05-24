@@ -23,63 +23,52 @@
     <hr>
     <div id="gameDescription">
         <h2>あいうえバトルとは</h2>
-        <p>相手の隠された単語を当てる2人対戦ゲームです。</p>
-        <p>お互いに2〜7文字の単語を秘密で入力し、50音キーボードを使って相手の文字を攻撃します。文字がヒットすると開き、ヒットした時は連続攻撃できます。ミスや自爆（自分の単語と同じ文字を攻撃）するとターンが相手に移ります。相手の単語を全て開いたら勝利！</p>
+        <p>相手の隠された単語を当てる対戦ゲームです。</p>
+        <p>お互いに2〜7文字の単語を秘密で入力し、50音キーボードを使って相手の文字を攻撃します。文字がヒットすると開き、ヒットした時は連続攻撃できます。ミスや自爆（自分の単語と同じ文字を攻撃）するとターンが相手に移ります。最後まで単語が残ったプレイヤーの勝利！</p>
         <h2>単語のルール</h2>
         <ul>
             <li>2〜7文字で入力してください</li>
             <li>キーボードにある清音・長音符（ー）のみ使用できます</li>
-            <li>濁音（が・ざ・だ・ば）、半濁音（ぱ行）、小文字（ぁぃぅぇぉっゃゅょ）は清音として扱ってください（例：「ガ」→「か」、「っ」→「つ」）</li>
-            <li>使わないマスは「×」を入力してください（例：3文字の単語なら残り4マスに×）</li>
+            <li>濁音・半濁音・小文字は清音として扱ってください</li>
+            <li>使わないマスは「×」を入力してください</li>
             <li>「×」のマスは攻撃対象になりません</li>
         </ul>
         <h2>遊び方</h2>
         <ol>
             <li>「部屋を作る」でルームIDを発行し、相手に共有</li>
-            <li>相手はIDを入力して参加</li>
+            <li>相手はIDを入力して参加（最大8人）</li>
+            <li>部屋主が「ゲーム開始」ボタンを押す</li>
             <li>お互いに単語を入力して「決定」</li>
             <li>キーボードで文字を選んで攻撃！</li>
         </ol>
     </div>
 </div>
 
-    <!-- ②待機画面 -->
-    <div id="screenWait" hidden>
-        <h2>相手を待っています...</h2>
-        <p id="waitRoomId"></p>
-        <hr>
-        <div id="gameDescription2">
-            <h2>あいうえバトルとは</h2>
-            <p>相手の隠された単語を当てる2人対戦ゲームです。</p>
-            <p>お互いに2〜7文字の単語を秘密で入力し、50音キーボードを使って相手の文字を攻撃します。文字がヒットすると開き、ヒットした時は連続攻撃できます。ミスや自爆（自分の単語と同じ文字を攻撃）するとターンが相手に移ります。相手の単語を全て開いたら勝利！</p>
-            <h2>単語のルール</h2>
-            <ul>
-                <li>2〜7文字で入力してください</li>
-                <li>キーボードにある清音・長音符（ー）のみ使用できます</li>
-                <li>濁音（が・ざ・だ・ば）、半濁音（ぱ行）、小文字（ぁぃぅぇぉっゃゅょ）は清音として扱ってください（例：「ガ」→「か」、「っ」→「つ」）</li>
-                <li>使わないマスは「×」を入力してください（例：3文字の単語なら残り4マスに×）</li>
-                <li>「×」のマスは攻撃対象になりません</li>
-            </ul>
-            <h2>遊び方</h2>
-            <ol>
-                <li>「部屋を作る」でルームIDを発行し、相手に共有</li>
-                <li>相手はIDを入力して参加</li>
-                <li>お互いに単語を入力して「決定」</li>
-                <li>キーボードで文字を選んで攻撃！</li>
-            </ol>
-        </div>
+<!-- ②待機画面 -->
+<div id="screenWait" hidden>
+    <h2>待機中...</h2>
+    <p id="waitRoomId"></p>
+    <div id="playerList"></div>
+    <button id="startGameBtn" hidden>ゲーム開始</button>
+    <p id="startInfo"></p>
+    <hr>
+    <div id="gameDescription2">
+        <h2>あいうえバトルとは</h2>
+        <p>相手の隠された単語を当てる対戦ゲームです。</p>
+        <p>お互いに2〜7文字の単語を秘密で入力し、50音キーボードを使って相手の文字を攻撃します。文字がヒットすると開き、ヒットした時は連続攻撃できます。ミスや自爆するとターンが相手に移ります。最後まで単語が残ったプレイヤーの勝利！</p>
     </div>
+</div>
 
-    <!-- ②-2 お題選択画面 -->
-    <div id="screenTheme" hidden>
-        <h2>お題を選んでください</h2>
-        <p>先に選んだ方に決定します</p>
-        <button id="randomThemeBtn">ランダム</button>
-        <br>
-        <input id="freeThemeInput" placeholder="自由入力のお題を入力">
-        <button id="freeThemeBtn">自由</button>
-        <p id="themeWait"></p>
-    </div>
+<!-- ②-2 お題選択画面 -->
+<div id="screenTheme" hidden>
+    <h2>お題を選んでください</h2>
+    <p>先に選んだ方に決定します</p>
+    <button id="randomThemeBtn">ランダム</button>
+    <br>
+    <input id="freeThemeInput" placeholder="自由入力のお題を入力">
+    <button id="freeThemeBtn" disabled>自由</button>
+    <p id="themeWait"></p>
+</div>
 
     <!-- ③単語入力画面 -->
     <div id="screenInput" hidden>
@@ -102,22 +91,20 @@
         </div>
     </div>
 
-    <!-- ④バトル画面 -->
-    <div id="screenBattle" hidden>
-        <h2>バトル中！</h2>
-        <p id="score">0勝 0敗</p>
-        <p id="opponentName">相手の単語</p>
-        <div class="cards" id="battleCards"></div>
-        <div id="result"></div>
-        <p id="myName">自分の単語</p>
-        <p id="battleTheme" style="color:#aaa; font-size:0.9em;"></p>
-        <div class="cards" id="myCards"></div>
-        <button id="rematchBtn" hidden>再戦</button>
-        <div id="battleLog"></div>
-        <div id="keyboardArea2">
-            <div id="keyboard2"></div>
-        </div>
+<!-- ④バトル画面 -->
+<div id="screenBattle" hidden>
+    <h2>バトル中！</h2>
+    <p id="score">0勝 0敗</p>
+    <p id="battleTheme"></p>
+    <div id="allPlayersArea"></div>
+    <div id="result"></div>
+    <button id="rematchBtn" hidden>再戦</button>
+    <p id="rematchVoteInfo"></p>
+    <div id="battleLog"></div>
+    <div id="keyboardArea2">
+        <div id="keyboard2"></div>
     </div>
+</div>
 
     <!-- ⑤観戦画面 -->
     <div id="screenWatch" hidden>

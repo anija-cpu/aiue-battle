@@ -16,7 +16,6 @@ const keyboard = document.getElementById("keyboard");
 const specialKeyboard = document.getElementById("specialKeyboard");
 
 // バトル画面
-const battleCards = document.getElementById("battleCards");
 const result = document.getElementById("result");
 const keyboard2 = document.getElementById("keyboard2");
 
@@ -29,10 +28,12 @@ let usedKana = [];
 let myTurn = false;
 let wins = 0;
 let losses = 0;
-
-// 観戦用
-let watchPlayer1Id = null;
-let watchPlayer2Id = null;
+let myRoomId = null;
+let isHost = false;
+let turnOrder = [];
+let players = [];
+let playerNames = {};
+let eliminated = [];
 
 // =====================
 // 画面切り替え
@@ -48,9 +49,7 @@ function showScreen(id) {
 // =====================
 function updateSelection() {
     inputs.forEach(i => i.classList.remove("selected"));
-    if (inputs[currentIndex]) {
-        inputs[currentIndex].classList.add("selected");
-    }
+    if (inputs[currentIndex]) inputs[currentIndex].classList.add("selected");
 }
 updateSelection();
 
@@ -82,7 +81,7 @@ function attackKana(kana, btn) {
 }
 
 // =====================
-// キーボード生成（共通）
+// キーボード生成
 // =====================
 const kanaList = [
     "わ","ら","や","ま","は","な","た","さ","か","あ",
@@ -120,49 +119,43 @@ function buildSpecialKeyboard(container, mode) {
     });
 }
 
-// 観戦用キーボード（クリック不可・色変えのみ）
-function buildWatchKeyboard(container) {
-    kanaList.forEach(kana => {
-        if (!kana) {
-            container.appendChild(document.createElement("div"));
-            return;
-        }
-        const btn = document.createElement("button");
-        btn.textContent = kana;
-        btn.disabled = true;
-        btn.id = "wk-" + kana;
-        container.appendChild(btn);
-    });
-}
-
 buildKeyboard(keyboard, "input");
 buildSpecialKeyboard(specialKeyboard, "input");
 buildKeyboard(keyboard2, "battle");
 buildKeyboard(document.getElementById("watchKeyboard"), "watch");
 
 // =====================
-// バトル画面：相手カード生成
+// バトル画面：全プレイヤーのカード生成
 // =====================
-function buildBattleCards(length) {
-    battleCards.innerHTML = "";
-    for (let i = 0; i < length; i++) {
-        const card = document.createElement("div");
-        card.classList.add("card");
-        card.textContent = "？";
-        card.id = "bc-" + i;
-        battleCards.appendChild(card);
-    }
-}
+function buildAllPlayerCards(playersArr, playerNamesObj, opponentLengths, myId) {
+    const area = document.getElementById("allPlayersArea");
+    area.innerHTML = "";
+    playersArr.forEach(id => {
+        const wrapper = document.createElement("div");
+        wrapper.id = "playerArea-" + id;
+        wrapper.style.marginBottom = "16px";
 
-function buildMyCards() {
-    const myCards = document.getElementById("myCards");
-    myCards.innerHTML = "";
-    answer.forEach((kana, i) => {
-        const card = document.createElement("div");
-        card.classList.add("card");
-        card.textContent = "？";
-        card.id = "mc-" + i;
-        myCards.appendChild(card);
+        const label = document.createElement("p");
+        label.id = "playerLabel-" + id;
+        label.textContent = id === myId
+            ? `自分：${playerNamesObj[id]}`
+            : `${playerNamesObj[id]}`;
+        label.style.fontWeight = "bold";
+        wrapper.appendChild(label);
+
+        const cardsDiv = document.createElement("div");
+        cardsDiv.classList.add("cards");
+
+        const length = id === myId ? answer.length : (opponentLengths[id] || 7);
+        for (let i = 0; i < length; i++) {
+            const card = document.createElement("div");
+            card.classList.add("card");
+            card.textContent = "？";
+            card.id = `card-${id}-${i}`;
+            cardsDiv.appendChild(card);
+        }
+        wrapper.appendChild(cardsDiv);
+        area.appendChild(wrapper);
     });
 }
 
@@ -175,7 +168,9 @@ function updateTurnDisplay() {
         result.style.color = "#c0392b";
         document.getElementById("keyboardArea2").classList.remove("disabled");
     } else {
-        result.textContent = "🛡️ 相手のターン...";
+        const currentId = turnOrder.find(id => !eliminated.includes(id) && id !== socket.id);
+        const currentName = playerNames[turnOrder.find(id => !eliminated.includes(id))] || "相手";
+        result.textContent = `🛡️ ${currentName}のターン...`;
         result.style.color = "#888888";
         document.getElementById("keyboardArea2").classList.add("disabled");
     }
@@ -193,31 +188,81 @@ function addLog(message) {
 }
 
 // =====================
+// 脱落表示
+// =====================
+function markEliminated(id) {
+    const area = document.getElementById("playerArea-" + id);
+    if (area) area.style.opacity = "0.4";
+    const label = document.getElementById("playerLabel-" + id);
+    if (label) label.textContent += "（脱落）";
+}
+
+// =====================
 // ルーム作成
 // =====================
 createRoomBtn.onclick = () => {
     const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
     roomInput.value = roomId;
     const playerName = document.getElementById("nameInput").value || "プレイヤー1";
+    isHost = true;
     socket.emit("createRoom", roomId, playerName);
 };
 
 joinRoomBtn.onclick = () => {
-    const playerName = document.getElementById("nameInput2").value || "プレイヤー2";
+    const playerName = document.getElementById("nameInput2").value || "プレイヤー";
     socket.emit("joinRoom", roomInput.value, playerName);
 };
 
+// =====================
+// socket：ルーム作成完了
+// =====================
 socket.on("roomCreated", (roomId) => {
+    myRoomId = roomId;
     waitRoomId.textContent = "部屋ID: " + roomId;
     showScreen("screenWait");
+    document.getElementById("startGameBtn").hidden = false;
+    document.getElementById("startInfo").textContent = "2人以上集まったらゲーム開始を押してください";
 });
 
+// =====================
+// socket：ルーム参加完了
+// =====================
 socket.on("joinedRoom", (roomId) => {
+    myRoomId = roomId;
     waitRoomId.textContent = "部屋ID: " + roomId + " に参加しました";
     showScreen("screenWait");
+    document.getElementById("startGameBtn").hidden = true;
+    document.getElementById("startInfo").textContent = "部屋主がゲームを開始するのを待っています...";
 });
 
-socket.on("ready", () => {
+// =====================
+// socket：部屋情報更新
+// =====================
+socket.on("roomInfo", (data) => {
+    players = data.players;
+    playerNames = data.playerNames;
+    const list = document.getElementById("playerList");
+    list.innerHTML = "<h3>参加者</h3>";
+    data.players.forEach((id, i) => {
+        const p = document.createElement("p");
+        p.textContent = `${i + 1}. ${data.playerNames[id]}${i === 0 ? "（部屋主）" : ""}`;
+        list.appendChild(p);
+    });
+});
+
+// =====================
+// ゲーム開始ボタン
+// =====================
+document.getElementById("startGameBtn").onclick = () => {
+    socket.emit("startGame");
+};
+
+// =====================
+// socket：2人以上揃った
+// =====================
+socket.on("ready", (data) => {
+    turnOrder = data.turnOrder;
+    playerNames = data.playerNames;
     showScreen("screenTheme");
 });
 
@@ -236,94 +281,121 @@ checkButton.onclick = () => {
         if (i.value && i.value !== "×") i.value = "□";
     });
     checkButton.disabled = true;
-    result.textContent = "単語を設定しました！相手の入力を待っています...";
+    result.textContent = "単語を設定しました！全員の入力を待っています...";
 };
 
 // =====================
 // socket：ゲーム開始
 // =====================
 socket.on("gameStart", (data) => {
-    buildBattleCards(data.opponentLength);
-    buildMyCards();
-    document.getElementById("myName").textContent = `自分：${data.myName}`;
-    document.getElementById("opponentName").textContent = `相手：${data.opponentName}`;
+    turnOrder = data.turnOrder;
+    playerNames = data.playerNames;
+    players = data.players;
+    eliminated = [];
     document.getElementById("battleTheme").textContent = `お題：${data.theme}`;
+    buildAllPlayerCards(data.players, data.playerNames, data.opponentLengths, socket.id);
     showScreen("screenBattle");
     myTurn = data.firstTurn === socket.id;
+
+    // 自分のカードを表示
+    answer.forEach((kana, i) => {
+        const card = document.getElementById(`card-${socket.id}-${i}`);
+        if (card && kana !== "×") card.textContent = "？";
+        if (card && kana === "×") card.textContent = "×";
+    });
+
     updateTurnDisplay();
+    addLog(`ターン順: ${data.turnOrder.map(id => data.playerNames[id]).join(" → ")}`);
 });
 
 // =====================
 // socket：攻撃結果（自分が攻撃）
 // =====================
 socket.on("attackResult", (data) => {
-    data.hitIndexes.forEach(i => {
-        const card = document.getElementById("bc-" + i);
-        if (card) card.textContent = data.kana;
-    });
-    data.hitSelfIndexes.forEach(i => {
-        const card = document.getElementById("mc-" + i);
-        if (card) card.textContent = data.kana;
+    // カード更新
+    Object.entries(data.hitResults).forEach(([id, indexes]) => {
+        indexes.forEach(i => {
+            const card = document.getElementById(`card-${id}-${i}`);
+            if (card) card.textContent = data.kana;
+        });
     });
 
-    if (data.hitSelf && data.hit) {
-        result.textContent = "ヒット！でも自爆... ターン交代";
-        result.style.color = "#888888";
+    // ログ
+    if (data.hitSelf && data.hitAny) {
         addLog(`⚔️ 自分→「${data.kana}」ヒット＋自爆 ターン交代`);
+        result.textContent = "ヒット！でも自爆... ターン交代";
+        result.style.color = "#888";
     } else if (data.hitSelf) {
-        result.textContent = "自爆！ターン交代";
-        result.style.color = "#888888";
         addLog(`💥 自分→「${data.kana}」自爆 ターン交代`);
-    } else if (data.hit) {
+        result.textContent = "自爆！ターン交代";
+        result.style.color = "#888";
+    } else if (data.hitAny) {
+        addLog(`⚔️ 自分→「${data.kana}」ヒット！`);
         result.textContent = "ヒット！続けて攻撃！";
         result.style.color = "#c0392b";
-        addLog(`⚔️ 自分→「${data.kana}」ヒット！`);
     } else {
-        result.textContent = "ミス... ターン交代";
-        result.style.color = "#888888";
         addLog(`❌ 自分→「${data.kana}」ミス ターン交代`);
+        result.textContent = "ミス... ターン交代";
+        result.style.color = "#888";
     }
+
+    // 脱落
+    data.newlyEliminated.forEach(id => {
+        eliminated.push(id);
+        markEliminated(id);
+        addLog(`💀 ${playerNames[id]} 脱落！`);
+    });
 
     myTurn = !data.turnChanged;
     if (data.turnChanged) {
         document.getElementById("keyboardArea2").classList.add("disabled");
+        addLog(`→ ${playerNames[data.nextTurn]}のターン`);
     } else {
         document.getElementById("keyboardArea2").classList.remove("disabled");
     }
 });
 
 // =====================
-// socket：被弾（相手が攻撃）
+// socket：被弾（他プレイヤーが攻撃）
 // =====================
 socket.on("attacked", (data) => {
-    data.hitSelfIndexes.forEach(i => {
-        const card = document.getElementById("bc-" + i);
-        if (card) card.textContent = data.kana;
-    });
-    data.hitIndexes.forEach(i => {
-        const card = document.getElementById("mc-" + i);
-        if (card) card.textContent = data.kana;
+    // カード更新
+    Object.entries(data.hitResults).forEach(([id, indexes]) => {
+        indexes.forEach(i => {
+            const card = document.getElementById(`card-${id}-${i}`);
+            if (card) card.textContent = data.kana;
+        });
     });
 
-    const btns = keyboard2.querySelectorAll("button");
-    btns.forEach(btn => {
+    // キーボードグレーアウト
+    keyboard2.querySelectorAll("button").forEach(btn => {
         if (btn.textContent === data.kana) {
             btn.disabled = true;
             btn.style.backgroundColor = "gray";
         }
     });
 
-    if (data.hitSelf && data.hit) {
-        addLog(`🛡️ 相手→「${data.kana}」ヒット＋自爆 あなたのターンへ`);
+    // ログ
+    const attackerName = playerNames[data.attacker] || "?";
+    if (data.hitSelf && data.hitAny) {
+        addLog(`⚔️ ${attackerName}→「${data.kana}」ヒット＋自爆`);
     } else if (data.hitSelf) {
-        addLog(`💥 相手→「${data.kana}」自爆 あなたのターンへ`);
-    } else if (data.hit) {
-        addLog(`🛡️ 相手→「${data.kana}」被弾！`);
+        addLog(`💥 ${attackerName}→「${data.kana}」自爆`);
+    } else if (data.hitAny) {
+        addLog(`⚔️ ${attackerName}→「${data.kana}」ヒット！`);
     } else {
-        addLog(`❌ 相手→「${data.kana}」ミス あなたのターンへ`);
+        addLog(`❌ ${attackerName}→「${data.kana}」ミス`);
     }
 
-    myTurn = data.turnChanged;
+    // 脱落
+    data.newlyEliminated.forEach(id => {
+        eliminated.push(id);
+        markEliminated(id);
+        addLog(`💀 ${playerNames[id]} 脱落！`);
+    });
+
+    myTurn = data.nextTurn === socket.id;
+    addLog(`→ ${playerNames[data.nextTurn]}のターン`);
     updateTurnDisplay();
 });
 
@@ -337,8 +409,8 @@ socket.on("gameEnd", (data) => {
         addLog("🎉 ゲーム終了 - あなたの勝ち！");
     } else {
         losses++;
-        result.textContent = "💀 あなたの負け...";
-        addLog("💀 ゲーム終了 - あなたの負け...");
+        result.textContent = `💀 ${data.winnerName} の勝ち！`;
+        addLog(`🏆 ゲーム終了 - ${data.winnerName} の勝利！`);
     }
     myTurn = false;
     document.getElementById("score").textContent = `${wins}勝 ${losses}敗`;
@@ -355,7 +427,6 @@ const themeList = [
     "家具","ブランド名","職業","料理","スポーツ","動物","野菜","果物"
 ];
 
-// 入力ボックスに文字が入ったら自由ボタンを有効化
 document.getElementById("freeThemeInput").addEventListener("input", () => {
     const val = document.getElementById("freeThemeInput").value.trim();
     document.getElementById("freeThemeBtn").disabled = val === "";
@@ -374,13 +445,11 @@ document.getElementById("freeThemeBtn").onclick = () => {
     document.getElementById("themeWait").textContent = "選択中...";
 };
 
-// お題確定（プレイヤー・観戦者共通）
+// お題確定
 socket.on("themeDecided", (data) => {
     const display = `お題：${data.theme}`;
     document.getElementById("themeDisplay").textContent = display;
     document.getElementById("watchTheme").textContent = display;
-
-    // 観戦者は画面遷移しない
     if (!document.getElementById("screenWatch").hidden) return;
     showScreen("screenInput");
 });
@@ -388,26 +457,29 @@ socket.on("themeDecided", (data) => {
 // =====================
 // 再戦
 // =====================
+socket.on("rematchVoteUpdate", (data) => {
+    document.getElementById("rematchVoteInfo").textContent =
+        `再戦希望: ${data.votes}/${data.total}`;
+});
+
 socket.on("waitingRematch", () => {
     result.textContent = "相手の再戦待ち...";
     document.getElementById("rematchBtn").hidden = true;
 });
 
 socket.on("rematchReady", () => {
-    document.getElementById("freeThemeInput").value = "";
-    document.getElementById("freeThemeBtn").disabled = true;
-    
     checkButton.disabled = false;
     usedKana = [];
     currentIndex = 0;
     answer = [];
+    eliminated = [];
+    turnOrder = [];
 
     keyboard2.querySelectorAll("button").forEach(btn => {
         btn.disabled = false;
         btn.style.backgroundColor = "";
     });
 
-    // 観戦キーボードもリセット
     document.querySelectorAll("#watchKeyboard button").forEach(btn => {
         btn.style.backgroundColor = "";
         btn.style.color = "";
@@ -419,15 +491,20 @@ socket.on("rematchReady", () => {
 
     document.getElementById("battleLog").innerHTML = "";
     document.getElementById("rematchBtn").hidden = true;
-    document.getElementById("scoreInput").textContent = `${wins}勝 ${losses}敗`;
+    document.getElementById("rematchVoteInfo").textContent = "";
+    document.getElementById("score").textContent = `${wins}勝 ${losses}敗`;
     document.getElementById("themeDisplay").textContent = "";
     document.getElementById("themeWait").textContent = "";
     document.getElementById("watchTheme").textContent = "";
+    document.getElementById("freeThemeInput").value = "";
+    document.getElementById("freeThemeBtn").disabled = true;
+    document.getElementById("allPlayersArea").innerHTML = "";
     showScreen("screenTheme");
 });
 
 document.getElementById("rematchBtn").onclick = () => {
     socket.emit("rematch");
+    document.getElementById("rematchBtn").hidden = true;
 };
 
 // =====================
@@ -440,13 +517,9 @@ document.getElementById("watchRoom").onclick = () => {
 
 socket.on("joinedAsSpectator", (data) => {
     document.getElementById("watchInfo").textContent = `部屋ID: ${data.roomId} を観戦中`;
-
-    // 参加時点でお題がすでに決まっていれば表示
     if (data.theme) {
-        const display = data.theme === "自由" ? "自由入力" : `お題：${data.theme}`;
-        document.getElementById("watchTheme").textContent = display;
+        document.getElementById("watchTheme").textContent = `お題：${data.theme}`;
     }
-
     showScreen("screenWatch");
 });
 
@@ -454,35 +527,39 @@ socket.on("joinedAsSpectator", (data) => {
 // 観戦：ゲーム開始
 // =====================
 socket.on("spectatorGameStart", (data) => {
-    watchPlayer1Id = data.player1;
-    watchPlayer2Id = data.player2;
-
-    // お題表示
-    if (data.theme) {
-        const display = data.theme === "自由" ? "自由入力" : `お題：${data.theme}`;
-        document.getElementById("watchTheme").textContent = display;
-    }
-
     const w1 = document.getElementById("watchCards1");
-    w1.innerHTML = "";
-    for (let i = 0; i < data.length1; i++) {
-        const card = document.createElement("div");
-        card.classList.add("card");
-        card.textContent = "？";
-        card.id = "wc1-" + i;
-        w1.appendChild(card);
-    }
     const w2 = document.getElementById("watchCards2");
+    w1.innerHTML = "";
     w2.innerHTML = "";
-    for (let i = 0; i < data.length2; i++) {
-        const card = document.createElement("div");
-        card.classList.add("card");
-        card.textContent = "？";
-        card.id = "wc2-" + i;
-        w2.appendChild(card);
-    }
-    document.getElementById("watchPlayer1Name").textContent = data.name1;
-    document.getElementById("watchPlayer2Name").textContent = data.name2;
+
+    // 観戦画面も全プレイヤー表示に対応
+    const watchArea = document.getElementById("watchCards1").parentElement;
+    watchArea.innerHTML = "";
+
+    data.players.forEach((id, idx) => {
+        const wrapper = document.createElement("div");
+        wrapper.id = "watchArea-" + id;
+
+        const label = document.createElement("p");
+        label.textContent = data.playerNames[id];
+        label.style.fontWeight = "bold";
+        wrapper.appendChild(label);
+
+        const cardsDiv = document.createElement("div");
+        cardsDiv.classList.add("cards");
+        const len = data.lengths[id] || 7;
+        for (let i = 0; i < len; i++) {
+            const card = document.createElement("div");
+            card.classList.add("card");
+            card.textContent = "？";
+            card.id = `wcard-${id}-${i}`;
+            cardsDiv.appendChild(card);
+        }
+        wrapper.appendChild(cardsDiv);
+        watchArea.appendChild(wrapper);
+    });
+
+    document.getElementById("watchTheme").textContent = `お題：${data.theme}`;
     showScreen("screenWatch");
 });
 
@@ -490,55 +567,43 @@ socket.on("spectatorGameStart", (data) => {
 // 観戦：攻撃更新
 // =====================
 socket.on("spectatorAttack", (data) => {
-    const attackerIsP1 = data.attacker === data.players[0];
-
-    // defender（相手）のカードにヒット表示
-    data.hitDefenderIndexes.forEach(i => {
-        const id = attackerIsP1 ? "wc2-" + i : "wc1-" + i;
-        const card = document.getElementById(id);
-        if (card) card.textContent = data.kana;
-    });
-
-    // attacker（自分）のカードに自爆表示
-    data.hitSelfIndexes.forEach(i => {
-        const id = attackerIsP1 ? "wc1-" + i : "wc2-" + i;
-        const card = document.getElementById(id);
-        if (card) card.textContent = data.kana;
+    Object.entries(data.hitResults).forEach(([id, indexes]) => {
+        indexes.forEach(i => {
+            const card = document.getElementById(`wcard-${id}-${i}`);
+            if (card) card.textContent = data.kana;
+        });
     });
 
     // 観戦キーボードに色付け
     const wkBtn = document.getElementById("wk-" + data.kana);
     if (wkBtn) {
-        if (data.hitDefender) {
-            // ヒット → 緑
-            wkBtn.style.backgroundColor = "#27ae60";
-            wkBtn.style.color = "#fff";
-            wkBtn.style.borderColor = "#1e8449";
-        } else {
-            // ミス → グレー
-            wkBtn.style.backgroundColor = "#aaa";
-            wkBtn.style.color = "#666";
-            wkBtn.style.borderColor = "#999";
-        }
+        wkBtn.style.backgroundColor = data.hitAny ? "#27ae60" : "#aaa";
+        wkBtn.style.color = data.hitAny ? "#fff" : "#666";
+        wkBtn.style.borderColor = data.hitAny ? "#1e8449" : "#999";
     }
 
     // ログ
     const log = document.getElementById("watchLog");
     const line = document.createElement("p");
-    const attackerName = attackerIsP1
-        ? document.getElementById("watchPlayer1Name").textContent
-        : document.getElementById("watchPlayer2Name").textContent;
-
-    if (data.hitSelf && data.hitDefender) {
+    const attackerName = data.playerNames[data.attacker] || "?";
+    if (data.hitSelf && data.hitAny) {
         line.textContent = `⚔️ ${attackerName}→「${data.kana}」ヒット＋自爆`;
     } else if (data.hitSelf) {
         line.textContent = `💥 ${attackerName}→「${data.kana}」自爆`;
-    } else if (data.hitDefender) {
+    } else if (data.hitAny) {
         line.textContent = `⚔️ ${attackerName}→「${data.kana}」ヒット！`;
     } else {
         line.textContent = `❌ ${attackerName}→「${data.kana}」ミス`;
     }
     log.prepend(line);
+
+    // 脱落表示
+    if (data.newlyEliminated) {
+        data.newlyEliminated.forEach(id => {
+            const area = document.getElementById("watchArea-" + id);
+            if (area) area.style.opacity = "0.4";
+        });
+    }
 });
 
 // =====================
@@ -551,7 +616,6 @@ socket.on("spectatorGameEnd", (data) => {
     line.style.color = "#c0392b";
     line.textContent = `🏆 ${data.winnerName} の勝利！`;
     log.prepend(line);
-
     document.getElementById("watchInfo").textContent = `🏆 ${data.winnerName} の勝利！`;
 });
 

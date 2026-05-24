@@ -11,7 +11,6 @@ app.use(express.static("public"));
 const rooms = {};
 
 io.on("connection", (socket) => {
-
     console.log("connected:", socket.id);
 
     // =====================
@@ -26,7 +25,12 @@ io.on("connection", (socket) => {
                 answers: {},
                 hits: {},
                 started: false,
-                theme: null
+                theme: null,
+                themeSelected: false,
+                turnOrder: [],
+                currentTurnIndex: 0,
+                eliminated: [],
+                rematchVotes: []
             };
         }
         socket.join(roomId);
@@ -34,7 +38,10 @@ io.on("connection", (socket) => {
         rooms[roomId].players.push(socket.id);
         rooms[roomId].playerNames[socket.id] = playerName || "プレイヤー1";
         socket.emit("roomCreated", roomId);
-        console.log("room created:", roomId);
+        io.to(roomId).emit("roomInfo", {
+            players: rooms[roomId].players,
+            playerNames: rooms[roomId].playerNames
+        });
     });
 
     // =====================
@@ -42,24 +49,18 @@ io.on("connection", (socket) => {
     // =====================
     socket.on("joinRoom", (roomId, playerName) => {
         const room = rooms[roomId];
-        if (!room) {
-            socket.emit("errorMessage", "部屋が存在しません");
-            return;
-        }
-        if (room.players.length >= 2) {
-            socket.emit("errorMessage", "部屋が満員です");
-            return;
-        }
+        if (!room) { socket.emit("errorMessage", "部屋が存在しません"); return; }
+        if (room.players.length >= 8) { socket.emit("errorMessage", "部屋が満員です"); return; }
+        if (room.started) { socket.emit("errorMessage", "ゲームはすでに開始されています"); return; }
         socket.join(roomId);
         socket.roomId = roomId;
         room.players.push(socket.id);
-        room.playerNames[socket.id] = playerName || "プレイヤー2";
+        room.playerNames[socket.id] = playerName || "プレイヤー";
         socket.emit("joinedRoom", roomId);
-        io.to(roomId).emit("playerJoined");
-        console.log("joined:", roomId);
-        if (room.players.length === 2) {
-            io.to(roomId).emit("ready");
-        }
+        io.to(roomId).emit("roomInfo", {
+            players: room.players,
+            playerNames: room.playerNames
+        });
     });
 
     // =====================
@@ -67,24 +68,39 @@ io.on("connection", (socket) => {
     // =====================
     socket.on("watchRoom", (roomId, playerName) => {
         const room = rooms[roomId];
-        if (!room) {
-            socket.emit("errorMessage", "部屋が存在しません");
-            return;
-        }
+        if (!room) { socket.emit("errorMessage", "部屋が存在しません"); return; }
         socket.join(roomId);
         socket.roomId = roomId;
         socket.isSpectator = true;
-        socket.spectatorName = playerName || "観戦者";
         socket.emit("joinedAsSpectator", {
             roomId,
             playerNames: room.playerNames,
             players: room.players,
-            hits: room.hits,
-            answers: room.answers,
             started: room.started,
-            theme: room.theme          // ← 追加：参加時点のお題を渡す
+            theme: room.theme
         });
-        console.log("spectator joined:", roomId);
+    });
+
+    // =====================
+    // ゲーム開始（部屋主が押す）
+    // =====================
+    socket.on("startGame", () => {
+        const room = rooms[socket.roomId];
+        if (!room) return;
+        if (room.players[0] !== socket.id) return; // 部屋主のみ
+        if (room.players.length < 2) { socket.emit("errorMessage", "2人以上必要です"); return; }
+        if (room.started) return;
+
+        // ターン順をランダムに決定
+        const shuffled = [...room.players].sort(() => Math.random() - 0.5);
+        room.turnOrder = shuffled;
+        room.currentTurnIndex = 0;
+        room.themeSelected = false;
+
+        io.to(socket.roomId).emit("ready", {
+            turnOrder: room.turnOrder,
+            playerNames: room.playerNames
+        });
     });
 
     // =====================
@@ -95,8 +111,8 @@ io.on("connection", (socket) => {
         if (!room) return;
         if (room.themeSelected) return;
         room.themeSelected = true;
-        room.theme = theme;            // ← 追加：お題を記録
-        io.to(socket.roomId).emit("themeDecided", { theme }); // 観戦者にも届く
+        room.theme = theme;
+        io.to(socket.roomId).emit("themeDecided", { theme });
     });
 
     // =====================
@@ -105,52 +121,38 @@ io.on("connection", (socket) => {
     socket.on("setAnswer", (answerArray) => {
         const room = rooms[socket.roomId];
         if (!room) return;
-        if (!Array.isArray(answerArray)) { console.log("answer invalid"); return; }
-        if (answerArray.length !== 7) { console.log("answer length invalid"); return; }
+        if (!Array.isArray(answerArray) || answerArray.length !== 7) return;
 
         room.answers[socket.id] = answerArray;
         room.hits[socket.id] = Array(7).fill(false);
         socket.emit("answerSaved");
-        console.log("answer saved:", socket.id, answerArray);
 
-        const p1 = room.players[0];
-        const p2 = room.players[1];
-
-        if (room.players.length === 2 && room.answers[p1] && room.answers[p2]) {
+        // 全員揃ったらゲーム開始
+        const allSet = room.players.every(id => room.answers[id]);
+        if (allSet) {
             room.started = true;
-            const firstTurn = room.players[Math.floor(Math.random() * 2)];
-            const player1 = room.players[0];
-            const player2 = room.players[1];
-            io.to(player1).emit("gameStart", {
-                firstTurn,
-                opponentLength: room.answers[player2].length,
-                myName: room.playerNames[player1],
-                opponentName: room.playerNames[player2],
-                theme: room.theme
-            });
-            io.to(player2).emit("gameStart", {
-                firstTurn,
-                opponentLength: room.answers[player1].length,
-                myName: room.playerNames[player2],
-                opponentName: room.playerNames[player1],
-                theme: room.theme
-            });
-            // 観戦者へ
-            const spectators = [...io.sockets.adapter.rooms.get(socket.roomId) || []].filter(
-                id => !room.players.includes(id)
-            );
-            spectators.forEach(id => {
-                io.to(id).emit("spectatorGameStart", {
-                    player1,
-                    player2,
-                    name1: room.playerNames[player1],
-                    name2: room.playerNames[player2],
-                    length1: room.answers[player1].length,
-                    length2: room.answers[player2].length,
-                    theme: room.theme              // ← 追加
+            room.eliminated = [];
+            const firstTurn = room.turnOrder[0];
+
+            room.players.forEach(id => {
+                io.to(id).emit("gameStart", {
+                    firstTurn,
+                    turnOrder: room.turnOrder,
+                    playerNames: room.playerNames,
+                    players: room.players,
+                    opponentLengths: getOpponentLengths(room, id),
+                    theme: room.theme
                 });
             });
-            console.log("game started:", socket.roomId);
+
+            // 観戦者へ
+            sendToSpectators(socket.roomId, room, "spectatorGameStart", {
+                turnOrder: room.turnOrder,
+                playerNames: room.playerNames,
+                players: room.players,
+                lengths: getLengths(room),
+                theme: room.theme
+            });
         }
     });
 
@@ -158,99 +160,116 @@ io.on("connection", (socket) => {
     // 攻撃
     // =====================
     socket.on("attack", (data) => {
-        console.log("attack:", data);
         const room = rooms[socket.roomId];
-        if (!room) { console.log("room not found"); return; }
-        if (!room.started) { console.log("game not started"); return; }
+        if (!room || !room.started) return;
 
         const attacker = socket.id;
-        const defender = room.players.find(id => id !== attacker);
-        if (!defender) { console.log("defender not found"); return; }
+        const currentTurn = room.turnOrder[room.currentTurnIndex];
+        if (attacker !== currentTurn) return;
 
-        const defenderAnswer = room.answers[defender];
-        const attackerAnswer = room.answers[attacker];
-        if (!Array.isArray(defenderAnswer)) { console.log("defender answer invalid"); return; }
-
-        if (!room.hits[defender]) room.hits[defender] = Array(7).fill(false);
-        if (!room.hits[attacker]) room.hits[attacker] = Array(7).fill(false);
-
-        let hitDefender = false;
-        let hitDefenderIndexes = [];
-        defenderAnswer.forEach((kana, index) => {
-            if (kana === data.kana) {
-                hitDefender = true;
-                room.hits[defender][index] = true;
-                hitDefenderIndexes.push(index);
-            }
-        });
-
+        const kana = data.kana;
+        let hitAny = false;
         let hitSelf = false;
         let hitSelfIndexes = [];
-        attackerAnswer.forEach((kana, index) => {
-            if (kana === data.kana) {
-                hitSelf = true;
-                room.hits[attacker][index] = true;
-                hitSelfIndexes.push(index);
+        const hitResults = {}; // { playerId: [indexes] }
+
+        // 全プレイヤーに対してヒット判定
+        room.players.forEach(id => {
+            if (room.eliminated.includes(id)) return;
+            const answer = room.answers[id];
+            const indexes = [];
+            answer.forEach((k, i) => {
+                if (k === kana) {
+                    room.hits[id][i] = true;
+                    indexes.push(i);
+                }
+            });
+            if (indexes.length > 0) {
+                hitResults[id] = indexes;
+                if (id === attacker) {
+                    hitSelf = true;
+                    hitSelfIndexes = indexes;
+                } else {
+                    hitAny = true;
+                }
             }
         });
 
-        const turnChanged = hitSelf || !hitDefender;
-
-        socket.emit("attackResult", {
-            kana: data.kana,
-            hit: hitDefender,
-            hitIndexes: hitDefenderIndexes,
-            hitSelf,
-            hitSelfIndexes,
-            turnChanged
+        // 脱落判定
+        const newlyEliminated = [];
+        room.players.forEach(id => {
+            if (room.eliminated.includes(id)) return;
+            if (id === attacker) return; // 攻撃者は脱落しない
+            const answer = room.answers[id];
+            const allOpen = answer.every((k, i) => k === "×" || room.hits[id][i]);
+            if (allOpen) {
+                room.eliminated.push(id);
+                newlyEliminated.push(id);
+            }
         });
 
-        io.to(defender).emit("attacked", {
-            kana: data.kana,
-            hit: hitDefender,
-            hitIndexes: hitDefenderIndexes,
+        const turnChanged = hitSelf || !hitAny;
+
+        // 次のターンを計算
+        if (turnChanged) {
+            advanceTurn(room);
+        }
+
+        const nextTurn = room.turnOrder[room.currentTurnIndex];
+
+        // 攻撃者に結果送信
+        socket.emit("attackResult", {
+            kana,
+            hitAny,
             hitSelf,
             hitSelfIndexes,
-            turnChanged
+            hitResults,
+            turnChanged,
+            nextTurn,
+            newlyEliminated,
+            eliminatedNames: newlyEliminated.map(id => room.playerNames[id])
+        });
+
+        // 他プレイヤーに送信
+        room.players.forEach(id => {
+            if (id === attacker) return;
+            io.to(id).emit("attacked", {
+                kana,
+                attacker,
+                hitAny,
+                hitSelf,
+                hitSelfIndexes,
+                hitResults,
+                turnChanged,
+                nextTurn,
+                newlyEliminated,
+                eliminatedNames: newlyEliminated.map(id => room.playerNames[id])
+            });
         });
 
         // 観戦者へ
-        const spectators2 = [...io.sockets.adapter.rooms.get(socket.roomId) || []].filter(
-            id => !room.players.includes(id)
-        );
-        spectators2.forEach(id => {
-            io.to(id).emit("spectatorAttack", {
-                kana: data.kana,
-                attacker,
-                defender,
-                players: room.players,
-                hitDefenderIndexes,
-                hitSelfIndexes,
-                hitDefender,
-                hitSelf,
-                turnChanged
-            });
+        sendToSpectators(socket.roomId, room, "spectatorAttack", {
+            kana,
+            attacker,
+            players: room.players,
+            hitAny,
+            hitSelf,
+            hitResults,
+            turnChanged,
+            nextTurn,
+            newlyEliminated,
+            playerNames: room.playerNames
         });
 
-        console.log("attack result:", data.kana, "defender:", hitDefender, "self:", hitSelf);
-
-        const winAttacker = room.hits[defender].every((opened, i) => {
-            return defenderAnswer[i] === "×" || opened === true;
-        });
-        const winDefender = room.hits[attacker].every((opened, i) => {
-            return attackerAnswer[i] === "×" || opened === true;
-        });
-
-        if (winAttacker || winDefender) {
-            const winner = winAttacker ? attacker : defender;
-            io.to(socket.roomId).emit("gameEnd", { winner });
-            spectators2.forEach(id => {
-                io.to(id).emit("spectatorGameEnd", {
-                    winnerName: room.playerNames[winner]
-                });
-            });
+        // 勝者判定（残り1人）
+        const alive = room.players.filter(id => !room.eliminated.includes(id));
+        if (alive.length === 1) {
+            const winner = alive[0];
             room.started = false;
-            console.log("game end, winner:", room.playerNames[winner]);
+            io.to(socket.roomId).emit("gameEnd", {
+                winner,
+                winnerName: room.playerNames[winner]
+            });
         }
     });
 
@@ -261,17 +280,22 @@ io.on("connection", (socket) => {
         const room = rooms[socket.roomId];
         if (!room) return;
         room.rematchVotes = room.rematchVotes || [];
+        if (room.rematchVotes.includes(socket.id)) return;
         room.rematchVotes.push(socket.id);
-        if (room.rematchVotes.length === 2) {
+        io.to(socket.roomId).emit("rematchVoteUpdate", {
+            votes: room.rematchVotes.length,
+            total: room.players.length
+        });
+        if (room.rematchVotes.length === room.players.length) {
             room.answers = {};
             room.hits = {};
             room.started = false;
             room.rematchVotes = [];
             room.themeSelected = false;
             room.theme = null;
+            room.eliminated = [];
+            room.turnOrder = [];
             io.to(socket.roomId).emit("rematchReady");
-        } else {
-            socket.emit("waitingRematch");
         }
     });
 
@@ -279,19 +303,54 @@ io.on("connection", (socket) => {
     // 切断
     // =====================
     socket.on("disconnect", () => {
-        console.log("disconnect:", socket.id);
         const roomId = socket.roomId;
         const room = rooms[roomId];
         if (!room) return;
         room.players = room.players.filter(id => id !== socket.id);
         delete room.answers[socket.id];
         delete room.hits[socket.id];
-        io.to(roomId).emit("playerLeft");
-        if (room.players.length === 0) {
-            delete rooms[roomId];
-        }
+        room.turnOrder = room.turnOrder.filter(id => id !== socket.id);
+        io.to(roomId).emit("playerLeft", { playerNames: room.playerNames });
+        if (room.players.length === 0) delete rooms[roomId];
     });
 });
+
+// =====================
+// ヘルパー関数
+// =====================
+function advanceTurn(room) {
+    const alive = room.players.filter(id => !room.eliminated.includes(id));
+    if (alive.length === 0) return;
+    let next = (room.currentTurnIndex + 1) % room.turnOrder.length;
+    while (room.eliminated.includes(room.turnOrder[next])) {
+        next = (next + 1) % room.turnOrder.length;
+    }
+    room.currentTurnIndex = next;
+}
+
+function getOpponentLengths(room, myId) {
+    const result = {};
+    room.players.forEach(id => {
+        if (id !== myId) result[id] = room.answers[id].length;
+    });
+    return result;
+}
+
+function getLengths(room) {
+    const result = {};
+    room.players.forEach(id => {
+        result[id] = room.answers[id] ? room.answers[id].length : 7;
+    });
+    return result;
+}
+
+function sendToSpectators(roomId, room, event, data) {
+    const sockets = io.sockets.adapter.rooms.get(roomId);
+    if (!sockets) return;
+    [...sockets].filter(id => !room.players.includes(id)).forEach(id => {
+        io.to(id).emit(event, data);
+    });
+}
 
 server.listen(3000, () => {
     console.log("server running on port 3000");
