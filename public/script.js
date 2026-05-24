@@ -39,6 +39,82 @@ let winCounts = {};
 let answered = false; // 決定後はDEL無効
 
 // =====================
+// Audio管理
+// =====================
+const AudioManager = {
+    bgm: null,
+    firstHitDone: false,
+
+    // SE用Audio（使い回しで多重再生OK）
+    _se: {
+        btnClick:  new Audio('/audio/se_button.mp3'),
+        keyHit:    new Audio('/audio/se_key.mp3'),
+        hit:       new Audio('/audio/se_hit.mp3'),
+        win:       new Audio('/audio/se_win.mp3'),
+    },
+
+    bgmFiles: {
+        lobby:      '/audio/bgm_lobby.mp3',
+        battle:     '/audio/bgm_battle.mp3',
+        battleHit:  '/audio/bgm_battle_hit.mp3',
+    },
+
+    // BGM再生（ループ）
+    playBGM(name, volume = 0.55) {
+        if (this.bgm) {
+            this.bgm.pause();
+            this.bgm.currentTime = 0;
+        }
+        this.bgm = new Audio(this.bgmFiles[name]);
+        this.bgm.loop = true;
+        this.bgm.volume = volume;
+        this.bgm.play().catch(() => {});
+    },
+
+    // BGM停止
+    stopBGM() {
+        if (this.bgm) {
+            this.bgm.pause();
+            this.bgm.currentTime = 0;
+            this.bgm = null;
+        }
+    },
+
+    // SE再生（複数同時可）
+    playSE(name, volume = 1.0) {
+        const src = this._se[name];
+        if (!src) return;
+        // 別インスタンスでクローン再生（重ね可）
+        const clone = src.cloneNode();
+        clone.volume = volume;
+        clone.play().catch(() => {});
+    },
+
+    // 初めてヒットしたときのBGM切替
+    onHit() {
+        this.playSE('hit');
+        if (!this.firstHitDone) {
+            this.firstHitDone = true;
+            this.playBGM('battleHit');
+        }
+    },
+
+    // 再戦リセット
+    reset() {
+        this.firstHitDone = false;
+    },
+};
+
+// =====================
+// 全ボタン共通クリックSE（keyboard2は除外 → attackKanaで個別処理）
+// =====================
+document.addEventListener('click', e => {
+    if (e.target.tagName === 'BUTTON' && !e.target.closest('#keyboard2')) {
+        AudioManager.playSE('btnClick');
+    }
+});
+
+// =====================
 // 画面切り替え
 // =====================
 function showScreen(id) {
@@ -79,6 +155,7 @@ function inputKana(kana) {
 function attackKana(kana, btn) {
     if (!myTurn) return;
     if (usedKana.includes(kana)) return;
+    AudioManager.playSE('keyHit'); // キー選択SE
     usedKana.push(kana);
     btn.disabled = true;
     btn.style.backgroundColor = "gray";
@@ -256,6 +333,7 @@ joinRoomBtn.onclick = () => {
 // =====================
 socket.on("roomCreated", (roomId) => {
     myRoomId = roomId;
+    AudioManager.playBGM('lobby'); // ロビーBGM開始
 
     // 部屋ID表示 + コピーボタン
     waitRoomId.innerHTML = "";
@@ -283,6 +361,7 @@ socket.on("roomCreated", (roomId) => {
 // =====================
 socket.on("joinedRoom", (roomId) => {
     myRoomId = roomId;
+    AudioManager.playBGM('lobby'); // ロビーBGM開始
     waitRoomId.textContent = "部屋ID: " + roomId + " に参加しました";
     showScreen("screenWait");
     document.getElementById("startGameBtn").hidden = true;
@@ -347,6 +426,8 @@ socket.on("gameStart", (data) => {
     playerNames = data.playerNames;
     players = data.players;
     eliminated = [];
+    AudioManager.reset();            // firstHitフラグリセット
+    AudioManager.playBGM('battle'); // バトルBGM開始
     document.getElementById("battleTheme").textContent = `お題：${data.theme}`;
     buildAllPlayerCards(data.players, data.playerNames, data.opponentLengths, socket.id);
     showScreen("screenBattle");
@@ -388,6 +469,7 @@ socket.on("attackResult", (data) => {
     });
 
     if (data.hitSelf && data.hitAny) {
+        AudioManager.onHit(); // ヒットSE + BGM切替チェック
         addLog(`⚔️ 自分→「${data.kana}」ヒット＋自爆 ターン交代`);
         result.textContent = "ヒット！でも自爆... ターン交代";
         result.style.color = "#888";
@@ -396,6 +478,7 @@ socket.on("attackResult", (data) => {
         result.textContent = "自爆！ターン交代";
         result.style.color = "#888";
     } else if (data.hitAny) {
+        AudioManager.onHit(); // ヒットSE + BGM切替チェック
         addLog(`⚔️ 自分→「${data.kana}」ヒット！`);
         result.textContent = "ヒット！続けて攻撃！";
         result.style.color = "#c0392b";
@@ -442,10 +525,12 @@ socket.on("attacked", (data) => {
 
     const attackerName = playerNames[data.attacker] || "?";
     if (data.hitSelf && data.hitAny) {
+        AudioManager.onHit(); // ヒットSE + BGM切替チェック
         addLog(`⚔️ ${attackerName}→「${data.kana}」ヒット＋自爆`);
     } else if (data.hitSelf) {
         addLog(`💥 ${attackerName}→「${data.kana}」自爆`);
     } else if (data.hitAny) {
+        AudioManager.onHit(); // ヒットSE + BGM切替チェック
         addLog(`⚔️ ${attackerName}→「${data.kana}」ヒット！`);
     } else {
         addLog(`❌ ${attackerName}→「${data.kana}」ミス`);
@@ -467,6 +552,9 @@ socket.on("attacked", (data) => {
 // socket：ゲーム終了
 // =====================
 socket.on("gameEnd", (data) => {
+    AudioManager.stopBGM();       // BGM停止
+    AudioManager.playSE('win');   // 終了SE（イエーイ！）
+
     winCounts[data.winner] = (winCounts[data.winner] || 0) + 1;
 
     if (data.winner === socket.id) {
@@ -538,6 +626,7 @@ socket.on("waitingRematch", () => {
 });
 
 socket.on("rematchReady", () => {
+    AudioManager.playBGM('lobby'); // ロビーBGMに戻す
     checkButton.disabled = false;
     usedKana = [];
     currentIndex = 0;
