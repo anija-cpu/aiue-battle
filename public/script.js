@@ -100,6 +100,7 @@ function buildKeyboard(container, mode) {
         }
         const btn = document.createElement("button");
         btn.textContent = kana;
+        if (mode === "watch") btn.id = "wk-" + kana;
         btn.onclick = () => {
             if (mode === "input") inputKana(kana);
             if (mode === "battle") attackKana(kana, btn);
