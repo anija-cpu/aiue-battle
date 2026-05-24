@@ -174,11 +174,12 @@ function updateTurnPanel(currentTurnId, order, names, eliminatedList) {
     const currentName = (currentTurnId && names[currentTurnId]) || "？";
     currentEl.textContent = `⚔️ ${currentName}のターン`;
 
-    // ターン順表示（脱落者はグレーアウト）
+    // ターン順表示（脱落者はグレーアウト、自分は勝敗付き）
     orderEl.innerHTML = "";
     (order || []).forEach(id => {
         const span = document.createElement("span");
-        span.textContent = names[id] || id;
+        const isMe = id === socket.id;
+        span.textContent = (names[id] || id) + (isMe ? ` ${wins}勝${losses}敗` : "");
         span.className = "turn-order-name";
         if ((eliminatedList || []).includes(id)) {
             span.classList.add("turn-order-eliminated");
@@ -452,7 +453,6 @@ socket.on("gameEnd", (data) => {
     }
     myTurn = false;
     hideTurnPanel();
-    document.getElementById("score").textContent = `${wins}勝 ${losses}敗`;
     document.getElementById("rematchBtn").hidden = false;
 });
 
@@ -531,7 +531,6 @@ socket.on("rematchReady", () => {
     document.getElementById("battleLog").innerHTML = "";
     document.getElementById("rematchBtn").hidden = true;
     document.getElementById("rematchVoteInfo").textContent = "";
-    document.getElementById("score").textContent = `${wins}勝 ${losses}敗`;
     document.getElementById("themeDisplay").textContent = "";
     document.getElementById("themeWait").textContent = "";
     document.getElementById("watchTheme").textContent = "";
