@@ -166,6 +166,38 @@ function buildAllPlayerCards(playersArr, playerNamesObj, opponentLengths, myId) 
 // =====================
 // ターン表示更新
 // =====================
+// ターンパネル更新（左上固定）
+// =====================
+function updateTurnPanel(currentTurnId, order, names, eliminatedList) {
+    const panel = document.getElementById("turnPanel");
+    const currentEl = document.getElementById("turnPanelCurrent");
+    const orderEl = document.getElementById("turnPanelOrder");
+
+    const currentName = (currentTurnId && names[currentTurnId]) || "？";
+    currentEl.textContent = `⚔️ ${currentName}のターン`;
+
+    // ターン順表示（脱落者はグレーアウト）
+    orderEl.innerHTML = "";
+    (order || []).forEach(id => {
+        const span = document.createElement("span");
+        span.textContent = names[id] || id;
+        span.className = "turn-order-name";
+        if ((eliminatedList || []).includes(id)) {
+            span.classList.add("turn-order-eliminated");
+        } else if (id === currentTurnId) {
+            span.classList.add("turn-order-active");
+        }
+        orderEl.appendChild(span);
+    });
+
+    panel.hidden = false;
+}
+
+function hideTurnPanel() {
+    document.getElementById("turnPanel").hidden = true;
+}
+
+// =====================
 function updateTurnDisplay(currentTurnId) {
     if (myTurn) {
         result.textContent = "⚔️ あなたのターン！";
@@ -308,6 +340,7 @@ socket.on("gameStart", (data) => {
     });
 
     updateTurnDisplay(data.firstTurn);
+    updateTurnPanel(data.firstTurn, data.turnOrder, data.playerNames, []);
     addLog(`ターン順: ${data.turnOrder.map(id => data.playerNames[id]).join(" → ")}`);
 });
 
@@ -350,8 +383,10 @@ socket.on("attackResult", (data) => {
     if (data.turnChanged) {
         document.getElementById("keyboardArea2").classList.add("disabled");
         addLog(`→ ${playerNames[data.nextTurn]}のターン`);
+        updateTurnPanel(data.nextTurn, turnOrder, playerNames, eliminated);
     } else {
         document.getElementById("keyboardArea2").classList.remove("disabled");
+        updateTurnPanel(socket.id, turnOrder, playerNames, eliminated);
     }
 });
 
@@ -393,6 +428,7 @@ socket.on("attacked", (data) => {
     myTurn = data.nextTurn === socket.id;
     addLog(`→ ${playerNames[data.nextTurn]}のターン`);
     updateTurnDisplay(data.nextTurn);
+    updateTurnPanel(data.nextTurn, turnOrder, playerNames, eliminated);
 });
 
 // =====================
@@ -409,6 +445,7 @@ socket.on("gameEnd", (data) => {
         addLog(`🏆 ゲーム終了 - ${data.winnerName} の勝利！`);
     }
     myTurn = false;
+    hideTurnPanel();
     document.getElementById("score").textContent = `${wins}勝 ${losses}敗`;
     document.getElementById("rematchBtn").hidden = false;
 });
@@ -552,6 +589,7 @@ socket.on("spectatorGameStart", (data) => {
     });
 
     document.getElementById("watchTheme").textContent = `お題：${data.theme}`;
+    updateTurnPanel(data.turnOrder[0], data.turnOrder, data.playerNames, []);
     showScreen("screenWatch"); // 観戦画面に遷移
 });
 
@@ -593,6 +631,10 @@ socket.on("spectatorAttack", (data) => {
             if (area) area.style.opacity = "0.4";
         });
     }
+
+    // 観戦側でも脱落リストを追跡してパネル更新
+    const watchEliminated = data.newlyEliminated || [];
+    updateTurnPanel(data.nextTurn, data.players, data.playerNames, watchEliminated);
 });
 
 // =====================
@@ -606,6 +648,7 @@ socket.on("spectatorGameEnd", (data) => {
     line.textContent = `🏆 ${data.winnerName} の勝利！`;
     log.prepend(line);
     document.getElementById("watchInfo").textContent = `🏆 ${data.winnerName} の勝利！`;
+    hideTurnPanel();
 });
 
 // =====================

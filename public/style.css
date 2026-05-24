@@ -179,6 +179,27 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
 #keyboardArea2.disabled { opacity: 0.35; pointer-events: none; }
 
 /* ==============================
+   バトルログ
+   ============================== */
+#battleLog {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 220px;
+    max-height: 400px;
+    overflow-y: auto;
+    background: rgba(255,248,235,0.92);
+    border: 2px solid #c8965a;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 13px;
+    text-align: left;
+    z-index: 100;
+    color: #3b1f0a;
+    box-shadow: 0 4px 16px rgba(80,40,0,0.2);
+}
+
+/* ==============================
    ゲーム説明
    ============================== */
 #gameDescription, #gameDescription2 {
@@ -229,7 +250,7 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
     height: 48px;
     font-size: 17px;
     padding: 0;
-    background: #fff8ef;
+    background: #fff8ef !important;
     color: #3b1f0a !important;
     border: 2px solid #c8965a !important;
     border-radius: 7px;
@@ -248,20 +269,67 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
 }
 
 /* 観戦ログ */
-#battleLog, #watchLog {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    width: 220px;
-    max-height: 400px;
+#watchLog {
+    max-height: 200px;
     overflow-y: auto;
-    background: rgba(255,248,235,0.92);
+    margin: 16px auto;
+    max-width: 400px;
+    background: rgba(255,248,235,0.8);
+    border: 1px solid #c8965a;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    text-align: left;
+    color: #3b1f0a;
+}
+
+/* ==============================
+   左上固定：ターン情報パネル
+   ============================== */
+#turnPanel {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    background: rgba(255, 248, 235, 0.95);
     border: 2px solid #c8965a;
     border-radius: 10px;
-    padding: 10px;
-    font-size: 13px;
-    text-align: left;
-    z-index: 100;
-    color: #3b1f0a;
+    padding: 10px 14px;
+    z-index: 200;
     box-shadow: 0 4px 16px rgba(80,40,0,0.2);
+    min-width: 160px;
+    max-width: 220px;
+    text-align: left;
+}
+
+#turnPanelCurrent {
+    font-size: 15px;
+    font-weight: bold;
+    color: #c0392b;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #c8965a;
+    padding-bottom: 6px;
+}
+
+#turnPanelOrder {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.turn-order-name {
+    font-size: 13px;
+    color: #5a2d00;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.turn-order-active {
+    background: #c8813a;
+    color: #fff;
+    font-weight: bold;
+}
+
+.turn-order-eliminated {
+    color: #bbb;
+    text-decoration: line-through;
 }
