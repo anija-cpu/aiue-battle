@@ -286,17 +286,22 @@ io.on("connection", (socket) => {
             votes: room.rematchVotes.length,
             total: room.players.length
         });
-        if (room.rematchVotes.length === room.players.length) {
-            room.answers = {};
-            room.hits = {};
-            room.started = false;
-            room.rematchVotes = [];
-            room.themeSelected = false;
-            room.theme = null;
-            room.eliminated = [];
-            room.turnOrder = [];
-            io.to(socket.roomId).emit("rematchReady");
-        }
+    if (room.rematchVotes.length === room.players.length) {
+        room.answers = {};
+        room.hits = {};
+        room.started = false;
+        room.rematchVotes = [];
+        room.themeSelected = false;
+        room.theme = null;
+        room.eliminated = [];
+        room.turnOrder = [...room.players].sort(() => Math.random() - 0.5);  // 再シャッフル
+        room.currentTurnIndex = 0;
+        io.to(socket.roomId).emit("rematchReady");
+        io.to(socket.roomId).emit("ready", {
+            turnOrder: room.turnOrder,
+            playerNames: room.playerNames
+    });
+}
     });
 
     // =====================
