@@ -24,13 +24,17 @@ io.on("connection", (socket) => {
                 playerNames: {},
                 answers: {},
                 hits: {},
+                wordLengths: {},   // 各プレイヤーの有効文字数
+                scores: {},        // 累積得点（セッション内で維持）
                 started: false,
                 theme: null,
                 themeSelected: false,
                 turnOrder: [],
                 currentTurnIndex: 0,
                 eliminated: [],
-                rematchVotes: []
+                rematchVotes: [],
+                timerDuration: 0,  // 0 = 無制限
+                turnTimer: null,
             };
         }
         socket.join(roomId);
@@ -82,16 +86,25 @@ io.on("connection", (socket) => {
     });
 
     // =====================
+    // タイマー設定（部屋主のみ）
+    // =====================
+    socket.on("setTimerDuration", (seconds) => {
+        const room = rooms[socket.roomId];
+        if (!room) return;
+        if (room.players[0] !== socket.id) return;
+        room.timerDuration = parseInt(seconds) || 0;
+    });
+
+    // =====================
     // ゲーム開始（部屋主が押す）
     // =====================
     socket.on("startGame", () => {
         const room = rooms[socket.roomId];
         if (!room) return;
-        if (room.players[0] !== socket.id) return; // 部屋主のみ
+        if (room.players[0] !== socket.id) return;
         if (room.players.length < 2) { socket.emit("errorMessage", "2人以上必要です"); return; }
         if (room.started) return;
 
-        // ターン順をランダムに決定
         const shuffled = [...room.players].sort(() => Math.random() - 0.5);
         room.turnOrder = shuffled;
         room.currentTurnIndex = 0;
@@ -125,6 +138,8 @@ io.on("connection", (socket) => {
 
         room.answers[socket.id] = answerArray;
         room.hits[socket.id] = Array(7).fill(false);
+        // 有効文字数（×以外）を記録
+        room.wordLengths[socket.id] = answerArray.filter(k => k !== "×").length;
         socket.emit("answerSaved");
 
         // 全員揃ったらゲーム開始
@@ -141,11 +156,12 @@ io.on("connection", (socket) => {
                     playerNames: room.playerNames,
                     players: room.players,
                     opponentLengths: getOpponentLengths(room, id),
-                    theme: room.theme
+                    theme: room.theme,
+                    scores: { ...room.scores },
+                    timerDuration: room.timerDuration,
                 });
             });
 
-            // 観戦者へ
             sendToSpectators(socket.roomId, room, "spectatorGameStart", {
                 turnOrder: room.turnOrder,
                 playerNames: room.playerNames,
@@ -153,6 +169,9 @@ io.on("connection", (socket) => {
                 lengths: getLengths(room),
                 theme: room.theme
             });
+
+            // タイマー開始
+            startTurnTimer(room, socket.roomId);
         }
     });
 
@@ -167,13 +186,15 @@ io.on("connection", (socket) => {
         const currentTurn = room.turnOrder[room.currentTurnIndex];
         if (attacker !== currentTurn) return;
 
+        // タイマーを即座にクリア
+        clearTurnTimer(room);
+
         const kana = data.kana;
         let hitAny = false;
         let hitSelf = false;
         let hitSelfIndexes = [];
-        const hitResults = {}; // { playerId: [indexes] }
+        const hitResults = {};
 
-        // 全プレイヤーに対してヒット判定
         room.players.forEach(id => {
             if (room.eliminated.includes(id)) return;
             const answer = room.answers[id];
@@ -199,7 +220,7 @@ io.on("connection", (socket) => {
         const newlyEliminated = [];
         room.players.forEach(id => {
             if (room.eliminated.includes(id)) return;
-            if (id === attacker) return; // 攻撃者は脱落しない
+            if (id === attacker) return;
             const answer = room.answers[id];
             const allOpen = answer.every((k, i) => k === "×" || room.hits[id][i]);
             if (allOpen) {
@@ -209,67 +230,51 @@ io.on("connection", (socket) => {
         });
 
         const turnChanged = hitSelf || !hitAny;
-
-        // 次のターンを計算
-        if (turnChanged) {
-            advanceTurn(room);
-        }
+        if (turnChanged) advanceTurn(room);
 
         const nextTurn = room.turnOrder[room.currentTurnIndex];
 
-        // 攻撃者に結果送信
         socket.emit("attackResult", {
-            kana,
-            hitAny,
-            hitSelf,
-            hitSelfIndexes,
-            hitResults,
-            turnChanged,
-            nextTurn,
-            newlyEliminated,
+            kana, hitAny, hitSelf, hitSelfIndexes, hitResults,
+            turnChanged, nextTurn, newlyEliminated,
             eliminatedNames: newlyEliminated.map(id => room.playerNames[id])
         });
 
-        // 他プレイヤーに送信
         room.players.forEach(id => {
             if (id === attacker) return;
             io.to(id).emit("attacked", {
-                kana,
-                attacker,
-                hitAny,
-                hitSelf,
-                hitSelfIndexes,
-                hitResults,
-                turnChanged,
-                nextTurn,
-                newlyEliminated,
+                kana, attacker, hitAny, hitSelf, hitSelfIndexes, hitResults,
+                turnChanged, nextTurn, newlyEliminated,
                 eliminatedNames: newlyEliminated.map(id => room.playerNames[id])
             });
         });
 
-        // 観戦者へ
         sendToSpectators(socket.roomId, room, "spectatorAttack", {
-            kana,
-            attacker,
-            players: room.players,
-            hitAny,
-            hitSelf,
-            hitResults,
-            turnChanged,
-            nextTurn,
-            newlyEliminated,
-            playerNames: room.playerNames
+            kana, attacker, players: room.players,
+            hitAny, hitSelf, hitResults, turnChanged, nextTurn,
+            newlyEliminated, playerNames: room.playerNames
         });
 
-        // 勝者判定（残り1人）
+        // 勝者判定
         const alive = room.players.filter(id => !room.eliminated.includes(id));
         if (alive.length === 1) {
             const winner = alive[0];
             room.started = false;
+            clearTurnTimer(room);
+
+            // 得点：勝者の有効文字数を加算
+            const winnerScore = room.wordLengths[winner] || 0;
+            room.scores[winner] = (room.scores[winner] || 0) + winnerScore;
+
             io.to(socket.roomId).emit("gameEnd", {
                 winner,
-                winnerName: room.playerNames[winner]
+                winnerName: room.playerNames[winner],
+                winnerScore,
+                scores: { ...room.scores }
             });
+        } else {
+            // 次のターンのタイマー開始
+            startTurnTimer(room, socket.roomId);
         }
     });
 
@@ -286,22 +291,24 @@ io.on("connection", (socket) => {
             votes: room.rematchVotes.length,
             total: room.players.length
         });
-    if (room.rematchVotes.length === room.players.length) {
-        room.answers = {};
-        room.hits = {};
-        room.started = false;
-        room.rematchVotes = [];
-        room.themeSelected = false;
-        room.theme = null;
-        room.eliminated = [];
-        room.turnOrder = [...room.players].sort(() => Math.random() - 0.5);  // 再シャッフル
-        room.currentTurnIndex = 0;
-        io.to(socket.roomId).emit("rematchReady");
-        io.to(socket.roomId).emit("ready", {
-            turnOrder: room.turnOrder,
-            playerNames: room.playerNames
-    });
-}
+        if (room.rematchVotes.length === room.players.length) {
+            room.answers = {};
+            room.hits = {};
+            room.wordLengths = {};
+            room.started = false;
+            room.rematchVotes = [];
+            room.themeSelected = false;
+            room.theme = null;
+            room.eliminated = [];
+            room.turnOrder = [...room.players].sort(() => Math.random() - 0.5);
+            room.currentTurnIndex = 0;
+            // scores はリセットしない（累積）
+            io.to(socket.roomId).emit("rematchReady");
+            io.to(socket.roomId).emit("ready", {
+                turnOrder: room.turnOrder,
+                playerNames: room.playerNames
+            });
+        }
     });
 
     // =====================
@@ -311,6 +318,7 @@ io.on("connection", (socket) => {
         const roomId = socket.roomId;
         const room = rooms[roomId];
         if (!room) return;
+        clearTurnTimer(room);
         room.players = room.players.filter(id => id !== socket.id);
         delete room.answers[socket.id];
         delete room.hits[socket.id];
@@ -331,6 +339,36 @@ function advanceTurn(room) {
         next = (next + 1) % room.turnOrder.length;
     }
     room.currentTurnIndex = next;
+}
+
+function startTurnTimer(room, roomId) {
+    clearTurnTimer(room);
+    if (!room.timerDuration || room.timerDuration <= 0) return;
+
+    // 全クライアントにタイマー開始を通知
+    io.to(roomId).emit("timerStart", { duration: room.timerDuration });
+
+    room.turnTimer = setTimeout(() => {
+        if (!room.started) return;
+
+        advanceTurn(room);
+        const nextTurn = room.turnOrder[room.currentTurnIndex];
+
+        io.to(roomId).emit("turnTimeout", {
+            nextTurn,
+            playerNames: room.playerNames
+        });
+
+        // 次のターンのタイマー開始
+        startTurnTimer(room, roomId);
+    }, room.timerDuration * 1000);
+}
+
+function clearTurnTimer(room) {
+    if (room && room.turnTimer) {
+        clearTimeout(room.turnTimer);
+        room.turnTimer = null;
+    }
 }
 
 function getOpponentLengths(room, myId) {

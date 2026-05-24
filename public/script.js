@@ -545,18 +545,26 @@ socket.on("gameStart", (data) => {
         }
     });
 
+    // 自分の単語を自分だけに表示（カード下）
+    const myArea = document.getElementById("playerArea-" + socket.id);
+    if (myArea) {
+        const old = document.getElementById("myWordDisplay");
+        if (old) old.remove();
+        const wordDisplay = document.createElement("div");
+        wordDisplay.id = "myWordDisplay";
+        const letters = answer.filter(k => k !== "×").join("　");
+        wordDisplay.textContent = `🔒 ${letters}`;
+        wordDisplay.style.cssText = `
+            font-size: 13px; color: #7a4800; margin-top: 6px;
+            background: rgba(255,240,200,0.7); border-radius: 6px;
+            padding: 3px 10px; letter-spacing: 0.1em; text-align: center;
+        `;
+        myArea.appendChild(wordDisplay);
+    }
+
     updateTurnDisplay(data.firstTurn);
     updateTurnPanel(data.firstTurn, data.turnOrder, data.playerNames, []);
     addLog(`ターン順: ${data.turnOrder.map(id => data.playerNames[id]).join(" → ")}`);
-
-    // 自分の単語に含まれる文字をキーボードで強調表示
-    const myLetters = new Set(answer.filter(k => k !== "×"));
-    keyboard2.querySelectorAll("button").forEach(btn => {
-        btn.classList.remove("myLetter");
-        if (myLetters.has(btn.textContent)) {
-            btn.classList.add("myLetter");
-        }
-    });
 });
 
 // =====================
@@ -694,12 +702,14 @@ socket.on("gameEnd", (data) => {
 
     if (data.winner === socket.id) {
         wins++;
-        result.textContent = `🎉 あなたの勝ち！ +${data.winnerScore}pt`;
-        addLog(`🎉 ゲーム終了 - あなたの勝ち！ +${data.winnerScore}pt`);
+        const ptText = data.winnerScore != null ? ` +${data.winnerScore}pt` : '';
+        result.textContent = `🎉 あなたの勝ち！${ptText}`;
+        addLog(`🎉 ゲーム終了 - あなたの勝ち！${ptText}`);
     } else {
         losses++;
+        const ptText = data.winnerScore != null ? ` +${data.winnerScore}pt` : '';
         result.textContent = `💀 ${data.winnerName} の勝ち！`;
-        addLog(`🏆 ゲーム終了 - ${data.winnerName} の勝利！ +${data.winnerScore}pt`);
+        addLog(`🏆 ゲーム終了 - ${data.winnerName} の勝利！${ptText}`);
     }
     myTurn = false;
 
@@ -774,7 +784,6 @@ socket.on("rematchReady", () => {
     keyboard2.querySelectorAll("button").forEach(btn => {
         btn.disabled = false;
         btn.style.backgroundColor = "";
-        btn.classList.remove("myLetter");
     });
 
     document.querySelectorAll("#watchKeyboard button").forEach(btn => {
@@ -795,6 +804,8 @@ socket.on("rematchReady", () => {
     document.getElementById("freeThemeInput").value = "";
     document.getElementById("freeThemeBtn").disabled = true;
     document.getElementById("allPlayersArea").innerHTML = "";
+    const oldWord = document.getElementById("myWordDisplay");
+    if (oldWord) oldWord.remove();
     showScreen("screenTheme");
 });
 
