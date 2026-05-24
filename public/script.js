@@ -214,7 +214,7 @@ function updateTurnDisplay(currentTurnId) {
         score.innerHTML = playersArr
             .map(id => `${namesObj[id]}：${winCounts[id] || 0}勝`)
             .join("　");
-        }
+    }
 }
 
 // =====================
@@ -342,6 +342,7 @@ socket.on("gameStart", (data) => {
     data.players.forEach(id => {
        if (winCounts[id] === undefined) winCounts[id] = 0;
     }); 
+    updateScoreDisplay(data.players, data.playerNames);
 
     answer.forEach((kana, i) => {
         const card = document.getElementById(`card-${socket.id}-${i}`);
