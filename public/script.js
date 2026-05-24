@@ -166,13 +166,13 @@ function buildAllPlayerCards(playersArr, playerNamesObj, opponentLengths, myId) 
 // =====================
 // ターン表示更新
 // =====================
-function updateTurnDisplay() {
+function updateTurnDisplay(currentTurnId) {
     if (myTurn) {
         result.textContent = "⚔️ あなたのターン！";
         result.style.color = "#c0392b";
         document.getElementById("keyboardArea2").classList.remove("disabled");
     } else {
-        const currentName = playerNames[turnOrder.find(id => !eliminated.includes(id))] || "相手";
+        const currentName = (currentTurnId && playerNames[currentTurnId]) || "相手";
         result.textContent = `🛡️ ${currentName}のターン...`;
         result.style.color = "#888888";
         document.getElementById("keyboardArea2").classList.add("disabled");
@@ -307,7 +307,7 @@ socket.on("gameStart", (data) => {
         if (card) card.textContent = kana === "×" ? "×" : "？";
     });
 
-    updateTurnDisplay();
+    updateTurnDisplay(data.firstTurn);
     addLog(`ターン順: ${data.turnOrder.map(id => data.playerNames[id]).join(" → ")}`);
 });
 
@@ -392,7 +392,7 @@ socket.on("attacked", (data) => {
 
     myTurn = data.nextTurn === socket.id;
     addLog(`→ ${playerNames[data.nextTurn]}のターン`);
-    updateTurnDisplay();
+    updateTurnDisplay(data.nextTurn);
 });
 
 // =====================
