@@ -60,7 +60,7 @@ const AudioManager = {
     },
 
     // BGM再生（ループ）
-    playBGM(name, volume = 0.55) {
+    playBGM(name, volume = 0.25) {
         if (this.bgm) {
             this.bgm.pause();
             this.bgm.currentTime = 0;
@@ -69,7 +69,7 @@ const AudioManager = {
         this.bgm.loop = true;
         this.bgm.volume = volume;
         this.bgm.play().catch(err => {
-            console.warn('[AudioManager] BGM再生失敗:', err);
+            console.warn(`[AudioManager] BGM "${name}" 再生失敗:`, err);
         });
     },
 
@@ -83,7 +83,7 @@ const AudioManager = {
     },
 
     // SE再生（複数同時可）
-    playSE(name, volume = 1.0) {
+    playSE(name, volume = 0.5) {
         const src = this._se[name];
         if (!src) return;
         // 別インスタンスでクローン再生（重ね可）
@@ -109,8 +109,20 @@ const AudioManager = {
 
 // =====================
 // 全ボタン共通クリックSE（keyboard2は除外 → attackKanaで個別処理）
+// 初回クリックでブラウザのオートプレイ制限もアンロック
 // =====================
+let _audioUnlocked = false;
 document.addEventListener('click', e => {
+    // 初回クリック時にオーディオアンロック → ロビーBGM開始
+    if (!_audioUnlocked) {
+        _audioUnlocked = true;
+        Object.values(AudioManager._se).forEach(a => {
+            const clone = a.cloneNode();
+            clone.volume = 0;
+            clone.play().then(() => clone.pause()).catch(() => {});
+        });
+        AudioManager.playBGM('lobby'); // TOP画面からBGM開始
+    }
     if (e.target.tagName === 'BUTTON' && !e.target.closest('#keyboard2')) {
         AudioManager.playSE('btnClick');
     }
