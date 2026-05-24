@@ -137,14 +137,12 @@ function buildAllPlayerCards(playersArr, playerNamesObj, opponentLengths, myId) 
     playersArr.forEach(id => {
         const wrapper = document.createElement("div");
         wrapper.id = "playerArea-" + id;
-        wrapper.style.marginBottom = "16px";
 
         const label = document.createElement("p");
         label.id = "playerLabel-" + id;
         label.textContent = id === myId
             ? `自分：${playerNamesObj[id]}`
             : `${playerNamesObj[id]}`;
-        label.style.fontWeight = "bold";
         wrapper.appendChild(label);
 
         const cardsDiv = document.createElement("div");
@@ -336,7 +334,15 @@ socket.on("gameStart", (data) => {
 
     answer.forEach((kana, i) => {
         const card = document.getElementById(`card-${socket.id}-${i}`);
-        if (card) card.textContent = kana === "×" ? "×" : "？";
+        if (card) {
+            if (kana === "×") {
+                card.textContent = "×";
+                card.classList.add("opened");
+                card.style.color = "#bbb";
+            } else {
+                card.textContent = "？";
+            }
+        }
     });
 
     updateTurnDisplay(data.firstTurn);
@@ -351,7 +357,7 @@ socket.on("attackResult", (data) => {
     Object.entries(data.hitResults).forEach(([id, indexes]) => {
         indexes.forEach(i => {
             const card = document.getElementById(`card-${id}-${i}`);
-            if (card) card.textContent = data.kana;
+            if (card) { card.textContent = data.kana; card.classList.add("opened"); }
         });
     });
 
@@ -397,7 +403,7 @@ socket.on("attacked", (data) => {
     Object.entries(data.hitResults).forEach(([id, indexes]) => {
         indexes.forEach(i => {
             const card = document.getElementById(`card-${id}-${i}`);
-            if (card) card.textContent = data.kana;
+            if (card) { card.textContent = data.kana; card.classList.add("opened"); }
         });
     });
 
@@ -600,7 +606,7 @@ socket.on("spectatorAttack", (data) => {
     Object.entries(data.hitResults).forEach(([id, indexes]) => {
         indexes.forEach(i => {
             const card = document.getElementById(`wcard-${id}-${i}`);
-            if (card) card.textContent = data.kana;
+            if (card) { card.textContent = data.kana; card.classList.add("opened"); }
         });
     });
 

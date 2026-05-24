@@ -337,3 +337,58 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
     color: #bbb;
     text-decoration: line-through;
 }
+
+/* ==============================
+   プレイヤーエリア（バトル・観戦共通）2列グリッド
+   ============================== */
+#allPlayersArea,
+#watchPlayersArea {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 24px;
+    margin: 16px auto;
+    max-width: 900px;
+}
+
+/* プレイヤー名ラベル（大きく）*/
+#allPlayersArea [id^="playerLabel-"],
+#watchPlayersArea [id^="watchArea-"] > p {
+    font-size: 18px;
+    font-weight: bold;
+    color: #5a2d00;
+    margin: 0 0 6px;
+}
+
+/* 脱落プレイヤーエリア */
+#allPlayersArea [id^="playerArea-"],
+#watchPlayersArea [id^="watchArea-"] {
+    background: rgba(255,248,235,0.6);
+    border-radius: 12px;
+    padding: 12px;
+}
+
+/* カードトレイ：木製フレーム風に変更 */
+.cards {
+    background: #8B6340 !important;
+    box-shadow: 0 6px 0 #5a3a1a, inset 0 2px 6px rgba(0,0,0,0.25) !important;
+    border: 2px solid #a07040;
+}
+.cards::before,
+.cards::after {
+    background: #5a3a1a !important;
+}
+
+/* 未開のカード（？）をグレー背景・白文字に */
+#allPlayersArea .card,
+#watchPlayersArea .card {
+    background: #888 !important;
+    color: #fff !important;
+    font-weight: bold;
+}
+
+/* 開いたカード（文字が入ったもの）は白背景・茶文字 */
+#allPlayersArea .card.opened,
+#watchPlayersArea .card.opened {
+    background: #fff9ee !important;
+    color: #c0392b !important;
+}
