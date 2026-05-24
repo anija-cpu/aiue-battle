@@ -93,8 +93,6 @@ const kanaList = [
 ];
 
 function buildKeyboard(container, mode) {
-    const watchKeyboard = document.getElementById("watchKeyboard");
-    if (watchKeyboard) buildKeyboard(watchKeyboard, "watch");
     kanaList.forEach(kana => {
         if (!kana || (mode === "battle" && kana === "×")) {
             container.appendChild(document.createElement("div"));
@@ -140,6 +138,7 @@ buildKeyboard(keyboard, "input");
 buildSpecialKeyboard(specialKeyboard, "input");
 buildKeyboard(keyboard2, "battle");
 buildWatchKeyboard(document.getElementById("watchKeyboard"));
+buildKeyboard(document.getElementById("watchKeyboard"), "watch");
 
 // =====================
 // バトル画面：相手カード生成
