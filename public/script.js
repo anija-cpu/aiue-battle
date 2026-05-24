@@ -60,7 +60,7 @@ const AudioManager = {
     },
 
     // BGM再生（ループ）
-    playBGM(name, volume = 0.25) {
+    playBGM(name, volume = 0.15) {
         if (this.bgm) {
             this.bgm.pause();
             this.bgm.currentTime = 0;
@@ -83,7 +83,7 @@ const AudioManager = {
     },
 
     // SE再生（複数同時可）
-    playSE(name, volume = 0.5) {
+    playSE(name, volume = 0.25) {
         const src = this._se[name];
         if (!src) return;
         // 別インスタンスでクローン再生（重ね可）
