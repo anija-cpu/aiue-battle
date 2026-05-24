@@ -44,6 +44,8 @@ let answered = false; // 決定後はDEL無効
 const AudioManager = {
     bgm: null,
     firstHitDone: false,
+    _bgmVolume: 0.15,  // スライダーで動的に変わる
+    _seVolume:  0.25,  // スライダーで動的に変わる
 
     // SE用Audio（使い回しで多重再生OK）
     _se: {
@@ -60,14 +62,14 @@ const AudioManager = {
     },
 
     // BGM再生（ループ）
-    playBGM(name, volume = 0.15) {
+    playBGM(name) {
         if (this.bgm) {
             this.bgm.pause();
             this.bgm.currentTime = 0;
         }
         this.bgm = new Audio(this.bgmFiles[name]);
         this.bgm.loop = true;
-        this.bgm.volume = volume;
+        this.bgm.volume = this._bgmVolume;
         this.bgm.play().catch(err => {
             console.warn(`[AudioManager] BGM "${name}" 再生失敗:`, err);
         });
@@ -83,12 +85,11 @@ const AudioManager = {
     },
 
     // SE再生（複数同時可）
-    playSE(name, volume = 0.25) {
+    playSE(name) {
         const src = this._se[name];
         if (!src) return;
-        // 別インスタンスでクローン再生（重ね可）
         const clone = src.cloneNode();
-        clone.volume = volume;
+        clone.volume = this._seVolume;
         clone.play().catch(() => {});
     },
 
@@ -810,3 +811,105 @@ socket.on("errorMessage", (msg) => {
 socket.on("connect", () => {
     console.log("connected:", socket.id);
 });
+
+// =====================
+// 音量コントロールパネル（右上固定）
+// =====================
+(function buildVolumePanel() {
+    // localStorageから保存済み音量を読み込む
+    const savedBgm = parseFloat(localStorage.getItem('vol_bgm') ?? '0.15');
+    const savedSe  = parseFloat(localStorage.getItem('vol_se')  ?? '0.25');
+
+    // 起動時に反映
+    AudioManager._bgmVolume = savedBgm;
+    AudioManager._seVolume  = savedSe;
+    if (AudioManager.bgm) AudioManager.bgm.volume = savedBgm;
+
+    // --- パネル本体 ---
+    const panel = document.createElement('div');
+    panel.id = 'volumePanel';
+    panel.style.cssText = `
+        position: fixed; top: 16px; right: 16px; z-index: 300;
+        display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+    `;
+
+    // --- トグルボタン ---
+    const toggleBtn = document.createElement('button');
+    toggleBtn.textContent = '🔊';
+    toggleBtn.title = '音量調節';
+    toggleBtn.style.cssText = `
+        width: 38px; height: 38px; font-size: 18px;
+        padding: 0; border-radius: 50%; cursor: pointer;
+        background: rgba(255,248,235,0.92); border: 2px solid #c8965a;
+        box-shadow: 0 2px 8px rgba(80,40,0,0.2); margin: 0;
+    `;
+
+    // --- スライダーボックス ---
+    const box = document.createElement('div');
+    box.style.cssText = `
+        background: rgba(255,248,235,0.97); border: 2px solid #c8965a;
+        border-radius: 10px; padding: 12px 16px; min-width: 180px;
+        box-shadow: 0 4px 16px rgba(80,40,0,0.2); display: none;
+        flex-direction: column; gap: 10px;
+    `;
+
+    function makeRow(label, storageKey, initialVal, onChange) {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; flex-direction:column; gap:4px;';
+
+        const lbl = document.createElement('label');
+        lbl.style.cssText = 'font-size:12px; color:#5a2d00; font-weight:bold;';
+        lbl.textContent = label;
+
+        const sliderWrap = document.createElement('div');
+        sliderWrap.style.cssText = 'display:flex; align-items:center; gap:8px;';
+
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.min = '0'; slider.max = '1'; slider.step = '0.05';
+        slider.value = initialVal;
+        slider.style.cssText = 'flex:1; accent-color:#c8813a; cursor:pointer;';
+
+        const valLabel = document.createElement('span');
+        valLabel.style.cssText = 'font-size:12px; color:#5a2d00; width:32px; text-align:right;';
+        valLabel.textContent = Math.round(initialVal * 100) + '%';
+
+        slider.addEventListener('input', () => {
+            const v = parseFloat(slider.value);
+            valLabel.textContent = Math.round(v * 100) + '%';
+            localStorage.setItem(storageKey, v);
+            onChange(v);
+        });
+
+        sliderWrap.appendChild(slider);
+        sliderWrap.appendChild(valLabel);
+        row.appendChild(lbl);
+        row.appendChild(sliderWrap);
+        return row;
+    }
+
+    // BGMスライダー
+    box.appendChild(makeRow('🎵 BGM', 'vol_bgm', savedBgm, v => {
+        AudioManager._bgmVolume = v;
+        if (AudioManager.bgm) AudioManager.bgm.volume = v;
+    }));
+
+    // SEスライダー
+    box.appendChild(makeRow('🔔 SE', 'vol_se', savedSe, v => {
+        AudioManager._seVolume = v;
+    }));
+
+    // トグル動作
+    toggleBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        box.style.display = box.style.display === 'none' ? 'flex' : 'none';
+    });
+    document.addEventListener('click', () => {
+        box.style.display = 'none';
+    });
+    box.addEventListener('click', e => e.stopPropagation());
+
+    panel.appendChild(toggleBtn);
+    panel.appendChild(box);
+    document.body.appendChild(panel);
+})();
