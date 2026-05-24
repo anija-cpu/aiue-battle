@@ -94,12 +94,13 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
 .cards::before { left: 10px; }
 .cards::after  { right: 10px; }
 
+/* 入力画面カード（固定サイズ） */
 .card {
-    width: 62px;
-    height: 82px;
-    font-size: 36px;
+    width: 52px;
+    height: 68px;
+    font-size: 28px;
     text-align: center;
-    line-height: 82px;
+    line-height: 68px;
     background: #ffffff;
     border: 2px solid #d0c0a0;
     border-radius: 8px;
@@ -110,6 +111,36 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
     box-sizing: border-box;
     vertical-align: middle;
 }
+
+/* バトル・観戦エリアのカード：画面幅に応じて自動縮尺 */
+/* 2列レイアウトで7マス収まるよう vw基準でclamp */
+#allPlayersArea .card,
+#watchPlayersArea .card {
+    width: clamp(28px, 4.5vw, 48px);
+    height: clamp(36px, 6vw, 62px);
+    font-size: clamp(14px, 2.2vw, 24px);
+    line-height: clamp(36px, 6vw, 62px);
+    border-radius: 6px;
+}
+
+/* トレイ：画面幅に応じてpaddingとgapも縮小 */
+#allPlayersArea .cards,
+#watchPlayersArea .cards {
+    padding: clamp(6px, 1vw, 12px) clamp(8px, 1.5vw, 16px) clamp(10px, 1.5vw, 16px);
+    gap: clamp(4px, 0.8vw, 8px);
+    margin: clamp(4px, 1vw, 10px) auto;
+}
+
+/* トレイの脚もclamp */
+#allPlayersArea .cards::before,
+#allPlayersArea .cards::after,
+#watchPlayersArea .cards::before,
+#watchPlayersArea .cards::after {
+    width: clamp(10px, 1.5vw, 18px);
+    height: clamp(8px, 1.2vw, 14px);
+    bottom: clamp(-14px, -1.2vw, -8px);
+}
+
 
 .selected {
     border: 3px solid #27ae60 !important;
@@ -339,21 +370,23 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
 }
 
 /* ==============================
-   プレイヤーエリア（バトル・観戦共通）2列グリッド
+   プレイヤーエリア（バトル・観戦共通）レスポンシブ2列
    ============================== */
 #allPlayersArea,
 #watchPlayersArea {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px 24px;
-    margin: 16px auto;
-    max-width: 900px;
+    /* 画面幅が狭い時は1列、広い時は2列に自動切替 */
+    grid-template-columns: repeat(auto-fit, minmax(min(340px, 45vw), 1fr));
+    gap: clamp(8px, 2vw, 20px);
+    margin: 12px auto;
+    max-width: 960px;
+    padding: 0 8px;
 }
 
-/* プレイヤー名ラベル（大きく）*/
+/* プレイヤー名ラベル：画面幅に応じてサイズ変化 */
 #allPlayersArea [id^="playerLabel-"],
 #watchPlayersArea [id^="watchArea-"] > p {
-    font-size: 18px;
+    font-size: clamp(14px, 2vw, 20px);
     font-weight: bold;
     color: #5a2d00;
     margin: 0 0 6px;
@@ -367,7 +400,7 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
     padding: 12px;
 }
 
-/* カードトレイ：木製フレーム風に変更 */
+/* カードトレイ：木製フレーム風 */
 .cards {
     background: #8B6340 !important;
     box-shadow: 0 6px 0 #5a3a1a, inset 0 2px 6px rgba(0,0,0,0.25) !important;
@@ -378,7 +411,7 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
     background: #5a3a1a !important;
 }
 
-/* 未開のカード（？）をグレー背景・白文字に */
+/* 未開のカード（？）：グレー背景・白文字 */
 #allPlayersArea .card,
 #watchPlayersArea .card {
     background: #888 !important;
@@ -386,7 +419,7 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
     font-weight: bold;
 }
 
-/* 開いたカード（文字が入ったもの）は白背景・茶文字 */
+/* 開いたカード：白背景・赤文字 */
 #allPlayersArea .card.opened,
 #watchPlayersArea .card.opened {
     background: #fff9ee !important;
