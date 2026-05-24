@@ -47,16 +47,16 @@ const AudioManager = {
 
     // SE用Audio（使い回しで多重再生OK）
     _se: {
-        btnClick:  new Audio('/audio/se_button.mp3'),
-        keyHit:    new Audio('/audio/se_key.mp3'),
-        hit:       new Audio('/audio/se_hit.mp3'),
-        win:       new Audio('/audio/se_win.mp3'),
+        btnClick:  new Audio('/audio/決定ボタンを押す44.mp3'),
+        keyHit:    new Audio('/audio/パッ.mp3'),
+        hit:       new Audio('/audio/男衆「オウ！」.mp3'),
+        win:       new Audio('/audio/男衆「イエーイ！」.mp3'),
     },
 
     bgmFiles: {
-        lobby:      '/audio/bgm_lobby.mp3',
-        battle:     '/audio/bgm_battle.mp3',
-        battleHit:  '/audio/bgm_battle_hit.mp3',
+        lobby:      '/audio/ロビー.mp3',
+        battle:     '/audio/バトル中.mp3',
+        battleHit:  '/audio/バトル中～1文字空いた～.mp3',
     },
 
     // BGM再生（ループ）
@@ -68,7 +68,9 @@ const AudioManager = {
         this.bgm = new Audio(this.bgmFiles[name]);
         this.bgm.loop = true;
         this.bgm.volume = volume;
-        this.bgm.play().catch(() => {});
+        this.bgm.play().catch(err => {
+            console.warn('[AudioManager] BGM再生失敗:', err);
+        });
     },
 
     // BGM停止
