@@ -111,17 +111,28 @@ const AudioManager = {
 // 全ボタン共通クリックSE（keyboard2は除外 → attackKanaで個別処理）
 // 初回クリックでブラウザのオートプレイ制限もアンロック
 // =====================
+// TOP画面BGM：ページ読み込み直後に自動再生を試みる
+// ブラウザに止められた場合は初回クリックで再生
+// =====================
 let _audioUnlocked = false;
+
+// まず自動再生を試みる
+AudioManager.playBGM('lobby');
+
 document.addEventListener('click', e => {
-    // 初回クリック時にオーディオアンロック → ロビーBGM開始
+    // BGMがまだ再生されていなければ初回クリックで開始
     if (!_audioUnlocked) {
         _audioUnlocked = true;
+        // SEのアンロック
         Object.values(AudioManager._se).forEach(a => {
             const clone = a.cloneNode();
             clone.volume = 0;
             clone.play().then(() => clone.pause()).catch(() => {});
         });
-        AudioManager.playBGM('lobby'); // TOP画面からBGM開始
+        // BGMが止まっていたら再開
+        if (!AudioManager.bgm || AudioManager.bgm.paused) {
+            AudioManager.playBGM('lobby');
+        }
     }
     if (e.target.tagName === 'BUTTON' && !e.target.closest('#keyboard2')) {
         AudioManager.playSE('btnClick');
