@@ -137,7 +137,6 @@ function buildWatchKeyboard(container) {
 buildKeyboard(keyboard, "input");
 buildSpecialKeyboard(specialKeyboard, "input");
 buildKeyboard(keyboard2, "battle");
-buildWatchKeyboard(document.getElementById("watchKeyboard"));
 buildKeyboard(document.getElementById("watchKeyboard"), "watch");
 
 // =====================
