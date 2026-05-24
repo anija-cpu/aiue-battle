@@ -385,9 +385,12 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
 
 #allPlayersArea > div,
 #watchPlayersArea > div {
-    flex: 1 1 320px;
-    min-width: 200px;
+    flex: 0 1 auto;
+    min-width: 320px;
     max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 /* プレイヤー名ラベル：画面幅に応じてサイズ変化 */
