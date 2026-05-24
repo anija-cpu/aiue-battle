@@ -163,8 +163,6 @@ function buildAllPlayerCards(playersArr, playerNamesObj, opponentLengths, myId) 
 }
 
 // =====================
-// ターン表示更新
-// =====================
 // ターンパネル更新（左上固定）
 // =====================
 function updateTurnPanel(currentTurnId, order, names, eliminatedList) {
@@ -175,12 +173,12 @@ function updateTurnPanel(currentTurnId, order, names, eliminatedList) {
     const currentName = (currentTurnId && names[currentTurnId]) || "？";
     currentEl.textContent = `⚔️ ${currentName}のターン`;
 
-    // ターン順表示（脱落者はグレーアウト、自分は勝敗付き）
     orderEl.innerHTML = "";
     (order || []).forEach(id => {
         const span = document.createElement("span");
         const isMe = id === socket.id;
-        span.textContent = (names[id] || id) + (isMe ? ` ${wins}勝${losses}敗` : "");
+        const wc = winCounts[id] || 0;
+        span.textContent = (names[id] || id) + (isMe ? ` ${wins}勝${losses}敗` : ` ${wc}勝`);
         span.className = "turn-order-name";
         if ((eliminatedList || []).includes(id)) {
             span.classList.add("turn-order-eliminated");
@@ -208,12 +206,6 @@ function updateTurnDisplay(currentTurnId) {
         result.textContent = `🛡️ ${currentName}のターン...`;
         result.style.color = "#888888";
         document.getElementById("keyboardArea2").classList.add("disabled");
-    }
-    function updateScoreDisplay(playersArr, namesObj) {
-        const score = document.getElementById("score");
-        score.innerHTML = playersArr
-            .map(id => `${namesObj[id]}：${winCounts[id] || 0}勝`)
-            .join("　");
     }
 }
 
@@ -339,11 +331,13 @@ socket.on("gameStart", (data) => {
     buildAllPlayerCards(data.players, data.playerNames, data.opponentLengths, socket.id);
     showScreen("screenBattle");
     myTurn = data.firstTurn === socket.id;
-    data.players.forEach(id => {
-       if (winCounts[id] === undefined) winCounts[id] = 0;
-    }); 
-    updateScoreDisplay(data.players, data.playerNames);
 
+    // 勝利数初期化
+    data.players.forEach(id => {
+        if (winCounts[id] === undefined) winCounts[id] = 0;
+    });
+
+    // 自分のカードに×を表示
     answer.forEach((kana, i) => {
         const card = document.getElementById(`card-${socket.id}-${i}`);
         if (card) {
@@ -454,7 +448,6 @@ socket.on("attacked", (data) => {
 // =====================
 socket.on("gameEnd", (data) => {
     winCounts[data.winner] = (winCounts[data.winner] || 0) + 1;
-    updateScoreDisplay(players, playerNames);
 
     if (data.winner === socket.id) {
         wins++;
@@ -466,7 +459,11 @@ socket.on("gameEnd", (data) => {
         addLog(`🏆 ゲーム終了 - ${data.winnerName} の勝利！`);
     }
     myTurn = false;
+
+    // ターンパネルを勝利数込みで更新してから非表示
+    updateTurnPanel(null, turnOrder, playerNames, eliminated);
     hideTurnPanel();
+
     document.getElementById("rematchBtn").hidden = false;
 });
 
@@ -498,12 +495,12 @@ document.getElementById("freeThemeBtn").onclick = () => {
     document.getElementById("themeWait").textContent = "選択中...";
 };
 
-// お題確定（バグ修正①：isSpectatorフラグで判定）
+// お題確定
 socket.on("themeDecided", (data) => {
     const display = `お題：${data.theme}`;
     document.getElementById("themeDisplay").textContent = display;
     document.getElementById("watchTheme").textContent = display;
-    if (isSpectator) return; // 観戦者は画面遷移しない
+    if (isSpectator) return;
     showScreen("screenInput");
 });
 
@@ -564,7 +561,7 @@ document.getElementById("rematchBtn").onclick = () => {
 // =====================
 document.getElementById("watchRoom").onclick = () => {
     const playerName = document.getElementById("nameInput2").value || "観戦者";
-    isSpectator = true; // ← 観戦者フラグをセット
+    isSpectator = true;
     socket.emit("watchRoom", roomInput.value, playerName);
 };
 
@@ -577,11 +574,10 @@ socket.on("joinedAsSpectator", (data) => {
 });
 
 // =====================
-// 観戦：ゲーム開始（バグ修正②：watchAreaを専用divにする）
+// 観戦：ゲーム開始
 // =====================
 socket.on("spectatorGameStart", (data) => {
-    const watchArea = document.getElementById("watchPlayersArea"); // ← 専用divを使う
-
+    const watchArea = document.getElementById("watchPlayersArea");
     watchArea.innerHTML = "";
 
     data.players.forEach(id => {
@@ -609,7 +605,7 @@ socket.on("spectatorGameStart", (data) => {
 
     document.getElementById("watchTheme").textContent = `お題：${data.theme}`;
     updateTurnPanel(data.turnOrder[0], data.turnOrder, data.playerNames, []);
-    showScreen("screenWatch"); // 観戦画面に遷移
+    showScreen("screenWatch");
 });
 
 // =====================
@@ -651,7 +647,6 @@ socket.on("spectatorAttack", (data) => {
         });
     }
 
-    // 観戦側でも脱落リストを追跡してパネル更新
     const watchEliminated = data.newlyEliminated || [];
     updateTurnPanel(data.nextTurn, data.players, data.playerNames, watchEliminated);
 });
