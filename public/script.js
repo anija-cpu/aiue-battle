@@ -178,7 +178,7 @@ function updateTurnPanel(currentTurnId, order, names, eliminatedList) {
         const span = document.createElement("span");
         const isMe = id === socket.id;
         const wc = winCounts[id] || 0;
-        span.textContent = (names[id] || id) + (isMe ? ` ${wins}勝${losses}敗` : ` ${wc}勝`);
+        span.textContent = (names[id] || id) + ` ${wc}勝`;
         span.className = "turn-order-name";
         if ((eliminatedList || []).includes(id)) {
             span.classList.add("turn-order-eliminated");
