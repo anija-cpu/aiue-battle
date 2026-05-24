@@ -355,6 +355,12 @@ const themeList = [
     "家具","ブランド名","職業","料理","スポーツ","動物","野菜","果物"
 ];
 
+// 入力ボックスに文字が入ったら自由ボタンを有効化
+document.getElementById("freeThemeInput").addEventListener("input", () => {
+    const val = document.getElementById("freeThemeInput").value.trim();
+    document.getElementById("freeThemeBtn").disabled = val === "";
+});
+
 document.getElementById("randomThemeBtn").onclick = () => {
     const theme = themeList[Math.floor(Math.random() * themeList.length)];
     socket.emit("selectTheme", theme);
@@ -362,13 +368,15 @@ document.getElementById("randomThemeBtn").onclick = () => {
 };
 
 document.getElementById("freeThemeBtn").onclick = () => {
-    socket.emit("selectTheme", "自由");
+    const val = document.getElementById("freeThemeInput").value.trim();
+    if (!val) return;
+    socket.emit("selectTheme", val);
     document.getElementById("themeWait").textContent = "選択中...";
 };
 
 // お題確定（プレイヤー・観戦者共通）
 socket.on("themeDecided", (data) => {
-    const display = data.theme === "自由" ? "自由入力" : `お題：${data.theme}`;
+    const display = `お題：${data.theme}`;
     document.getElementById("themeDisplay").textContent = display;
     document.getElementById("watchTheme").textContent = display;
 
@@ -386,6 +394,9 @@ socket.on("waitingRematch", () => {
 });
 
 socket.on("rematchReady", () => {
+    document.getElementById("freeThemeInput").value = "";
+    document.getElementById("freeThemeBtn").disabled = true;
+    
     checkButton.disabled = false;
     usedKana = [];
     currentIndex = 0;
