@@ -36,6 +36,7 @@ let playerNames = {};
 let eliminated = [];
 let isSpectator = false;
 let winCounts = {};
+let answered = false; // 決定後はDEL無効
 
 // =====================
 // 画面切り替え
@@ -60,11 +61,13 @@ updateSelection();
 // =====================
 function inputKana(kana) {
     if (kana === "DEL") {
+        if (answered) return; // 決定後はDEL無効
         inputs[currentIndex].value = "";
         if (currentIndex > 0) currentIndex--;
         updateSelection();
         return;
     }
+    if (answered) return; // 決定後は入力も無効
     inputs[currentIndex].value = kana;
     if (currentIndex < inputs.length - 1) currentIndex++;
     updateSelection();
@@ -253,7 +256,23 @@ joinRoomBtn.onclick = () => {
 // =====================
 socket.on("roomCreated", (roomId) => {
     myRoomId = roomId;
-    waitRoomId.textContent = "部屋ID: " + roomId;
+
+    // 部屋ID表示 + コピーボタン
+    waitRoomId.innerHTML = "";
+    const idText = document.createElement("span");
+    idText.textContent = "部屋ID: " + roomId;
+    const copyBtn = document.createElement("button");
+    copyBtn.textContent = "📋 コピー";
+    copyBtn.style.cssText = "font-size:13px;padding:4px 10px;margin-left:8px;vertical-align:middle;";
+    copyBtn.onclick = () => {
+        navigator.clipboard.writeText(roomId).then(() => {
+            copyBtn.textContent = "✅ コピーしました";
+            setTimeout(() => { copyBtn.textContent = "📋 コピー"; }, 2000);
+        });
+    };
+    waitRoomId.appendChild(idText);
+    waitRoomId.appendChild(copyBtn);
+
     showScreen("screenWait");
     document.getElementById("startGameBtn").hidden = false;
     document.getElementById("startInfo").textContent = "2人以上集まったらゲーム開始を押してください";
@@ -313,8 +332,9 @@ checkButton.onclick = () => {
     }
     socket.emit("setAnswer", answer);
     inputs.forEach(i => {
-        if (i.value && i.value !== "×") i.value = "□";
+        if (i.value && i.value !== "×") i.value = "⚔️";
     });
+    answered = true;
     checkButton.disabled = true;
     result.textContent = "単語を設定しました！全員の入力を待っています...";
 };
@@ -522,6 +542,7 @@ socket.on("rematchReady", () => {
     usedKana = [];
     currentIndex = 0;
     answer = [];
+    answered = false;
     eliminated = [];
     turnOrder = [];
 
