@@ -242,6 +242,26 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
 
 #keyboardArea2.disabled { opacity: 0.35; pointer-events: none; }
 
+/* 自分の単語に含まれる文字キー */
+#keyboard2 button.myLetter {
+    background: #fff0c0 !important;
+    border-color: #e0a020 !important;
+    color: #7a4800 !important;
+    box-shadow: 0 3px 0 #b07010, 0 0 6px rgba(224,160,32,0.5) !important;
+    font-weight: bold;
+}
+#keyboard2 button.myLetter:hover:not(:disabled) {
+    background: #ffe08a !important;
+}
+/* 使用済みになったら強調解除（disabled時は通常のgrayが優先） */
+#keyboard2 button.myLetter:disabled {
+    background: #ccc !important;
+    border-color: #aaa !important;
+    color: #888 !important;
+    box-shadow: 0 1px 0 #999 !important;
+    font-weight: normal;
+}
+
 /* ==============================
    バトルログ
    ============================== */

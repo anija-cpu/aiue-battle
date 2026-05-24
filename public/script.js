@@ -37,6 +37,9 @@ let eliminated = [];
 let isSpectator = false;
 let winCounts = {};
 let answered = false; // 決定後はDEL無効
+let scores = {};           // 累積得点（サーバーから受信）
+let timerDuration = 0;     // 制限時間（秒）
+let countdownInterval = null; // カウントダウン用インターバル
 
 // =====================
 // Audio管理
@@ -236,6 +239,44 @@ buildKeyboard(keyboard2, "battle");
 buildKeyboard(document.getElementById("watchKeyboard"), "watch");
 
 // =====================
+// カウントダウン表示（バトル画面に動的追加）
+// =====================
+const countdownDisplay = document.createElement('div');
+countdownDisplay.id = 'countdownDisplay';
+countdownDisplay.style.cssText = `
+    font-size: 32px; font-weight: bold; text-align: center;
+    margin: 2px 0 6px; min-height: 40px; letter-spacing: 0.05em;
+    transition: color 0.3s;
+`;
+result.insertAdjacentElement('afterend', countdownDisplay);
+
+function startCountdown(seconds) {
+    if (countdownInterval) clearInterval(countdownInterval);
+    let remaining = seconds;
+    updateCountdownDisplay(remaining);
+    countdownInterval = setInterval(() => {
+        remaining--;
+        updateCountdownDisplay(remaining);
+        if (remaining <= 0) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+    }, 1000);
+}
+
+function stopCountdown() {
+    if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+    updateCountdownDisplay(0);
+}
+
+function updateCountdownDisplay(seconds) {
+    if (!countdownDisplay) return;
+    if (seconds <= 0) { countdownDisplay.textContent = ''; return; }
+    countdownDisplay.textContent = `⏱ ${seconds}`;
+    countdownDisplay.style.color = seconds <= 5 ? '#c0392b' : seconds <= 10 ? '#e67e22' : '#5a2d00';
+}
+
+// =====================
 // バトル画面：全プレイヤーのカード生成
 // =====================
 function buildAllPlayerCards(playersArr, playerNamesObj, opponentLengths, myId) {
@@ -284,7 +325,8 @@ function updateTurnPanel(currentTurnId, order, names, eliminatedList) {
         const span = document.createElement("span");
         const isMe = id === socket.id;
         const wc = winCounts[id] || 0;
-        span.textContent = (names[id] || id) + ` ${wc}勝`;
+        const pt = scores[id] || 0;
+        span.textContent = (names[id] || id) + ` ${wc}勝 ${pt}pt`;
         span.className = "turn-order-name";
         if ((eliminatedList || []).includes(id)) {
             span.classList.add("turn-order-eliminated");
@@ -359,7 +401,7 @@ joinRoomBtn.onclick = () => {
 // =====================
 socket.on("roomCreated", (roomId) => {
     myRoomId = roomId;
-    AudioManager.playBGM('lobby'); // ロビーBGM開始
+    AudioManager.playBGM('lobby');
 
     // 部屋ID表示 + コピーボタン
     waitRoomId.innerHTML = "";
@@ -376,6 +418,28 @@ socket.on("roomCreated", (roomId) => {
     };
     waitRoomId.appendChild(idText);
     waitRoomId.appendChild(copyBtn);
+
+    // ⏱ タイマー設定（部屋主のみ）
+    const timerRow = document.createElement('div');
+    timerRow.style.cssText = 'margin: 12px 0 4px; font-size: 14px; color: #5a2d00;';
+    timerRow.innerHTML = `
+        <label style="font-weight:bold;">⏱ 1ターンの制限時間：</label>
+        <select id="timerSelect" style="padding:4px 10px;border-radius:6px;border:2px solid #c8965a;margin-left:8px;font-size:14px;background:#fffdf5;cursor:pointer;">
+            <option value="0">無制限</option>
+            <option value="10">10秒</option>
+            <option value="15">15秒</option>
+            <option value="20">20秒</option>
+            <option value="30">30秒</option>
+            <option value="45">45秒</option>
+            <option value="60">60秒</option>
+        </select>
+    `;
+    const startBtn = document.getElementById('startGameBtn');
+    startBtn.parentNode.insertBefore(timerRow, startBtn);
+    document.getElementById('timerSelect').onchange = (e) => {
+        timerDuration = parseInt(e.target.value);
+        socket.emit('setTimerDuration', timerDuration);
+    };
 
     showScreen("screenWait");
     document.getElementById("startGameBtn").hidden = false;
@@ -452,8 +516,11 @@ socket.on("gameStart", (data) => {
     playerNames = data.playerNames;
     players = data.players;
     eliminated = [];
-    AudioManager.reset();            // firstHitフラグリセット
-    AudioManager.playBGM('battle'); // バトルBGM開始
+    scores = data.scores || {};
+    timerDuration = data.timerDuration || 0;
+    stopCountdown();
+    AudioManager.reset();
+    AudioManager.playBGM('battle');
     document.getElementById("battleTheme").textContent = `お題：${data.theme}`;
     buildAllPlayerCards(data.players, data.playerNames, data.opponentLengths, socket.id);
     showScreen("screenBattle");
@@ -481,12 +548,51 @@ socket.on("gameStart", (data) => {
     updateTurnDisplay(data.firstTurn);
     updateTurnPanel(data.firstTurn, data.turnOrder, data.playerNames, []);
     addLog(`ターン順: ${data.turnOrder.map(id => data.playerNames[id]).join(" → ")}`);
+
+    // 自分の単語に含まれる文字をキーボードで強調表示
+    const myLetters = new Set(answer.filter(k => k !== "×"));
+    keyboard2.querySelectorAll("button").forEach(btn => {
+        btn.classList.remove("myLetter");
+        if (myLetters.has(btn.textContent)) {
+            btn.classList.add("myLetter");
+        }
+    });
+});
+
+// =====================
+// socket：タイマー開始
+// =====================
+socket.on("timerStart", (data) => {
+    startCountdown(data.duration);
+});
+
+// =====================
+// socket：時間切れ（ターン強制交代）
+// =====================
+socket.on("turnTimeout", (data) => {
+    stopCountdown();
+    myTurn = data.nextTurn === socket.id;
+
+    if (myTurn) {
+        result.textContent = "⏰ 時間切れ！あなたのターン！";
+        result.style.color = "#c0392b";
+        document.getElementById("keyboardArea2").classList.remove("disabled");
+    } else {
+        const nextName = playerNames[data.nextTurn] || "？";
+        result.textContent = `⏰ 時間切れ！${nextName}のターン`;
+        result.style.color = "#888";
+        document.getElementById("keyboardArea2").classList.add("disabled");
+    }
+
+    addLog(`⏰ 時間切れ → ${playerNames[data.nextTurn]}のターン`);
+    updateTurnPanel(data.nextTurn, turnOrder, playerNames, eliminated);
 });
 
 // =====================
 // socket：攻撃結果（自分が攻撃）
 // =====================
 socket.on("attackResult", (data) => {
+    stopCountdown(); // 攻撃確定 → カウントダウン停止（サーバーからtimerStartが来る）
     Object.entries(data.hitResults).forEach(([id, indexes]) => {
         indexes.forEach(i => {
             const card = document.getElementById(`card-${id}-${i}`);
@@ -535,6 +641,7 @@ socket.on("attackResult", (data) => {
 // socket：被弾（他プレイヤーが攻撃）
 // =====================
 socket.on("attacked", (data) => {
+    stopCountdown(); // カウントダウン停止（サーバーからtimerStartが来る）
     Object.entries(data.hitResults).forEach(([id, indexes]) => {
         indexes.forEach(i => {
             const card = document.getElementById(`card-${id}-${i}`);
@@ -578,23 +685,24 @@ socket.on("attacked", (data) => {
 // socket：ゲーム終了
 // =====================
 socket.on("gameEnd", (data) => {
-    AudioManager.stopBGM();       // BGM停止
-    AudioManager.playSE('win');   // 終了SE（イエーイ！）
+    AudioManager.stopBGM();
+    AudioManager.playSE('win');
+    stopCountdown();
 
+    scores = data.scores || scores;
     winCounts[data.winner] = (winCounts[data.winner] || 0) + 1;
 
     if (data.winner === socket.id) {
         wins++;
-        result.textContent = "🎉 あなたの勝ち！";
-        addLog("🎉 ゲーム終了 - あなたの勝ち！");
+        result.textContent = `🎉 あなたの勝ち！ +${data.winnerScore}pt`;
+        addLog(`🎉 ゲーム終了 - あなたの勝ち！ +${data.winnerScore}pt`);
     } else {
         losses++;
         result.textContent = `💀 ${data.winnerName} の勝ち！`;
-        addLog(`🏆 ゲーム終了 - ${data.winnerName} の勝利！`);
+        addLog(`🏆 ゲーム終了 - ${data.winnerName} の勝利！ +${data.winnerScore}pt`);
     }
     myTurn = false;
 
-    // ターンパネルを勝利数込みで更新してから非表示
     updateTurnPanel(null, turnOrder, playerNames, eliminated);
     hideTurnPanel();
 
@@ -652,7 +760,8 @@ socket.on("waitingRematch", () => {
 });
 
 socket.on("rematchReady", () => {
-    AudioManager.playBGM('lobby'); // ロビーBGMに戻す
+    AudioManager.playBGM('lobby');
+    stopCountdown();
     checkButton.disabled = false;
     usedKana = [];
     currentIndex = 0;
@@ -660,10 +769,12 @@ socket.on("rematchReady", () => {
     answered = false;
     eliminated = [];
     turnOrder = [];
+    // scoresはリセットしない（累積）
 
     keyboard2.querySelectorAll("button").forEach(btn => {
         btn.disabled = false;
         btn.style.backgroundColor = "";
+        btn.classList.remove("myLetter");
     });
 
     document.querySelectorAll("#watchKeyboard button").forEach(btn => {
