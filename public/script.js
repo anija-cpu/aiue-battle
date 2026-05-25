@@ -39,6 +39,7 @@ let winCounts = {};
 let answered = false; // 決定後はDEL無効
 let scores = {};           // 累積得点（サーバーから受信）
 let timerDuration = 0;     // 制限時間（秒）
+let targetScore = 0;       // 勝利ポイント（0=無制限）
 let countdownInterval = null; // カウントダウン用インターバル
 
 // =====================
@@ -323,10 +324,10 @@ function updateTurnPanel(currentTurnId, order, names, eliminatedList) {
     orderEl.innerHTML = "";
     (order || []).forEach(id => {
         const span = document.createElement("span");
-        const isMe = id === socket.id;
         const wc = winCounts[id] || 0;
         const pt = scores[id] || 0;
-        span.textContent = (names[id] || id) + ` ${wc}勝 ${pt}pt`;
+        const ptText = targetScore > 0 ? `${pt}/${targetScore}pt` : `${pt}pt`;
+        span.textContent = (names[id] || id) + ` ${wc}勝 ${ptText}`;
         span.className = "turn-order-name";
         if ((eliminatedList || []).includes(id)) {
             span.classList.add("turn-order-eliminated");
@@ -441,6 +442,26 @@ socket.on("roomCreated", (roomId) => {
         socket.emit('setTimerDuration', timerDuration);
     };
 
+    // 🏆 勝利ポイント設定（部屋主のみ）
+    const scoreRow = document.createElement('div');
+    scoreRow.style.cssText = 'margin: 8px 0 4px; font-size: 14px; color: #5a2d00;';
+    scoreRow.innerHTML = `
+        <label style="font-weight:bold;">🏆 勝利ポイント：</label>
+        <select id="targetScoreSelect" style="padding:4px 10px;border-radius:6px;border:2px solid #c8965a;margin-left:8px;font-size:14px;background:#fffdf5;cursor:pointer;">
+            <option value="0">∞（無制限）</option>
+            <option value="3">3pt</option>
+            <option value="5">5pt</option>
+            <option value="10">10pt</option>
+            <option value="15">15pt</option>
+            <option value="20">20pt</option>
+            <option value="30">30pt</option>
+        </select>
+    `;
+    startBtn.parentNode.insertBefore(scoreRow, startBtn);
+    document.getElementById('targetScoreSelect').onchange = (e) => {
+        socket.emit('setTargetScore', parseInt(e.target.value));
+    };
+
     showScreen("screenWait");
     document.getElementById("startGameBtn").hidden = false;
     document.getElementById("startInfo").textContent = "2人以上集まったらゲーム開始を押してください";
@@ -518,6 +539,7 @@ socket.on("gameStart", (data) => {
     eliminated = [];
     scores = data.scores || {};
     timerDuration = data.timerDuration || 0;
+    targetScore = data.targetScore || 0;
     stopCountdown();
     AudioManager.reset();
     AudioManager.playBGM('battle');
@@ -717,6 +739,36 @@ socket.on("gameEnd", (data) => {
     hideTurnPanel();
 
     document.getElementById("rematchBtn").hidden = false;
+});
+
+// =====================
+// socket：マッチ終了（目標ポイント達成）
+// =====================
+socket.on("matchEnd", (data) => {
+    scores = {}; // ローカルもリセット
+    const isWinner = data.winner === socket.id;
+    const banner = document.createElement("div");
+    banner.style.cssText = `
+        position: fixed; inset: 0; z-index: 9999;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        background: rgba(0,0,0,0.7);
+    `;
+    banner.innerHTML = `
+        <div style="background:#fffdf5;border-radius:16px;padding:40px 60px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.4);">
+            <div style="font-size:48px;margin-bottom:12px;">${isWinner ? '🏆' : '🥈'}</div>
+            <div style="font-size:28px;font-weight:bold;color:#5a2d00;margin-bottom:8px;">
+                ${isWinner ? 'あなたの完全勝利！' : `${data.winnerName} の完全勝利！`}
+            </div>
+            <div style="font-size:15px;color:#888;margin-bottom:24px;">目標ポイントに達しました</div>
+            <button id="matchEndOk" style="font-size:16px;padding:10px 32px;">続ける</button>
+        </div>
+    `;
+    document.body.appendChild(banner);
+    document.getElementById("matchEndOk").onclick = () => {
+        banner.remove();
+    };
+    addLog(`🏆 マッチ終了 - ${data.winnerName} の完全勝利！`);
 });
 
 // =====================

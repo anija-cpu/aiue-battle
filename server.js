@@ -34,6 +34,7 @@ io.on("connection", (socket) => {
                 eliminated: [],
                 rematchVotes: [],
                 timerDuration: 0,  // 0 = 無制限
+                targetScore: 0,    // 0 = 無制限（勝利ポイント）
                 turnTimer: null,
             };
         }
@@ -93,6 +94,16 @@ io.on("connection", (socket) => {
         if (!room) return;
         if (room.players[0] !== socket.id) return;
         room.timerDuration = parseInt(seconds) || 0;
+    });
+
+    // =====================
+    // 勝利ポイント設定（部屋主のみ）
+    // =====================
+    socket.on("setTargetScore", (pts) => {
+        const room = rooms[socket.roomId];
+        if (!room) return;
+        if (room.players[0] !== socket.id) return;
+        room.targetScore = parseInt(pts) || 0;
     });
 
     // =====================
@@ -159,6 +170,7 @@ io.on("connection", (socket) => {
                     theme: room.theme,
                     scores: { ...room.scores },
                     timerDuration: room.timerDuration,
+                    targetScore: room.targetScore,
                 });
             });
 
@@ -270,8 +282,19 @@ io.on("connection", (socket) => {
                 winner,
                 winnerName: room.playerNames[winner],
                 winnerScore,
-                scores: { ...room.scores }
+                scores: { ...room.scores },
+                targetScore: room.targetScore,
             });
+
+            // 勝利ポイント達成チェック
+            if (room.targetScore > 0 && room.scores[winner] >= room.targetScore) {
+                // スコアをリセットして次セッションへ
+                room.scores = {};
+                io.to(socket.roomId).emit("matchEnd", {
+                    winner,
+                    winnerName: room.playerNames[winner],
+                });
+            }
         } else {
             // 次のターンのタイマー開始
             startTurnTimer(room, socket.roomId);
