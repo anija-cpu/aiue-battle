@@ -293,6 +293,7 @@ io.on("connection", (socket) => {
                 io.to(socket.roomId).emit("matchEnd", {
                     winner,
                     winnerName: room.playerNames[winner],
+                    targetScore: room.targetScore,
                 });
             }
         } else {

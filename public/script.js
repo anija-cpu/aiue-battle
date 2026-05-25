@@ -747,27 +747,68 @@ socket.on("gameEnd", (data) => {
 socket.on("matchEnd", (data) => {
     scores = {}; // ローカルもリセット
     const isWinner = data.winner === socket.id;
+
     const banner = document.createElement("div");
     banner.style.cssText = `
         position: fixed; inset: 0; z-index: 9999;
         display: flex; flex-direction: column;
         align-items: center; justify-content: center;
-        background: rgba(0,0,0,0.7);
+        background: rgba(0,0,0,0.85);
+        animation: fadeInBanner 0.5s ease;
     `;
-    banner.innerHTML = `
-        <div style="background:#fffdf5;border-radius:16px;padding:40px 60px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.4);">
-            <div style="font-size:48px;margin-bottom:12px;">${isWinner ? '🏆' : '🥈'}</div>
-            <div style="font-size:28px;font-weight:bold;color:#5a2d00;margin-bottom:8px;">
-                ${isWinner ? 'あなたの完全勝利！' : `${data.winnerName} の完全勝利！`}
-            </div>
-            <div style="font-size:15px;color:#888;margin-bottom:24px;">目標ポイントに達しました</div>
-            <button id="matchEndOk" style="font-size:16px;padding:10px 32px;">続ける</button>
-        </div>
+
+    // アニメーション定義（初回のみ）
+    if (!document.getElementById('bannerStyle')) {
+        const style = document.createElement('style');
+        style.id = 'bannerStyle';
+        style.textContent = `
+            @keyframes fadeInBanner {
+                from { opacity: 0; transform: scale(0.92); }
+                to   { opacity: 1; transform: scale(1); }
+            }
+            @keyframes popIn {
+                from { opacity: 0; transform: scale(0.7); }
+                to   { opacity: 1; transform: scale(1); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    const img = document.createElement("img");
+    img.src = isWinner ? '/win.png' : '/lose.png';
+    img.style.cssText = `
+        max-width: 88vw;
+        max-height: 70vh;
+        object-fit: contain;
+        border-radius: 12px;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+        animation: popIn 0.4s ease 0.1s both;
     `;
+
+    const subText = document.createElement("div");
+    subText.style.cssText = `
+        color: #fff; font-size: 16px; margin: 16px 0 0;
+        text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+        animation: popIn 0.4s ease 0.25s both;
+    `;
+    subText.textContent = isWinner
+        ? `目標 ${data.targetScore || ''}pt 達成！完全勝利！`
+        : `${data.winnerName} が完全勝利しました`;
+
+    const btn = document.createElement("button");
+    btn.textContent = "続ける";
+    btn.style.cssText = `
+        margin-top: 20px;
+        font-size: 17px; padding: 10px 40px;
+        animation: popIn 0.4s ease 0.4s both;
+    `;
+    btn.onclick = () => banner.remove();
+
+    banner.appendChild(img);
+    banner.appendChild(subText);
+    banner.appendChild(btn);
     document.body.appendChild(banner);
-    document.getElementById("matchEndOk").onclick = () => {
-        banner.remove();
-    };
+
     addLog(`🏆 マッチ終了 - ${data.winnerName} の完全勝利！`);
 });
 
