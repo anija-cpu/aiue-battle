@@ -342,7 +342,8 @@ function updateTurnPanel(currentTurnId, order, names, eliminatedList) {
 }
 
 function hideTurnPanel() {
-    document.getElementById("turnPanel").hidden = true;
+    const currentEl = document.getElementById("turnPanelCurrent");
+    if (currentEl) currentEl.textContent = "🏆 ゲーム終了";
 }
 
 // =====================
