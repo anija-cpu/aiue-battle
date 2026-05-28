@@ -1069,39 +1069,66 @@ socket.on("connect", () => {
     `;
 
     function makeRow(label, storageKey, initialVal, onChange) {
-        const row = document.createElement('div');
-        row.style.cssText = 'display:flex; flex-direction:column; gap:4px;';
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; flex-direction:column; gap:4px;';
 
-        const lbl = document.createElement('label');
-        lbl.style.cssText = 'font-size:12px; color:#5a2d00; font-weight:bold;';
-        lbl.textContent = label;
+    const lbl = document.createElement('label');
+    lbl.style.cssText = 'font-size:12px; color:#5a2d00; font-weight:bold;';
+    lbl.textContent = label;
 
-        const sliderWrap = document.createElement('div');
-        sliderWrap.style.cssText = 'display:flex; align-items:center; gap:8px;';
+    const sliderWrap = document.createElement('div');
+    sliderWrap.style.cssText = 'display:flex; align-items:center; gap:4px;';
 
-        const slider = document.createElement('input');
-        slider.type = 'range';
-        slider.min = '0'; slider.max = '1'; slider.step = '0.05';
-        slider.value = initialVal;
-        slider.style.cssText = 'flex:1; accent-color:#c8813a; cursor:pointer;';
+    const minusBtn = document.createElement('button');
+    minusBtn.textContent = '－';
+    minusBtn.style.cssText = `
+        width:24px; height:24px; font-size:14px; padding:0;
+        border-radius:4px; cursor:pointer; margin:0;
+        background:#fff8ef; border:2px solid #c8965a;
+        box-shadow:0 2px 0 #a07040; color:#5a2d00;
+        flex-shrink:0;
+    `;
 
-        const valLabel = document.createElement('span');
-        valLabel.style.cssText = 'font-size:12px; color:#5a2d00; width:32px; text-align:right;';
-        valLabel.textContent = Math.round(initialVal * 100) + '%';
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = '0'; slider.max = '1'; slider.step = '0.01';
+    slider.value = initialVal;
+    slider.style.cssText = 'flex:1; accent-color:#c8813a; cursor:pointer;';
 
-        slider.addEventListener('input', () => {
-            const v = parseFloat(slider.value);
-            valLabel.textContent = Math.round(v * 100) + '%';
-            localStorage.setItem(storageKey, v);
-            onChange(v);
-        });
+    const plusBtn = document.createElement('button');
+    plusBtn.textContent = '＋';
+    plusBtn.style.cssText = minusBtn.style.cssText;
 
-        sliderWrap.appendChild(slider);
-        sliderWrap.appendChild(valLabel);
-        row.appendChild(lbl);
-        row.appendChild(sliderWrap);
-        return row;
+    const valLabel = document.createElement('span');
+    valLabel.style.cssText = 'font-size:12px; color:#5a2d00; width:32px; text-align:right;';
+    valLabel.textContent = Math.round(initialVal * 100) + '%';
+
+    function applyValue(v) {
+        v = Math.min(1, Math.max(0, Math.round(v * 100) / 100));
+        slider.value = v;
+        valLabel.textContent = Math.round(v * 100) + '%';
+        localStorage.setItem(storageKey, v);
+        onChange(v);
     }
+
+    slider.addEventListener('input', () => applyValue(parseFloat(slider.value)));
+    minusBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        applyValue(parseFloat(slider.value) - 0.01);
+    });
+    plusBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        applyValue(parseFloat(slider.value) + 0.01);
+    });
+
+    sliderWrap.appendChild(minusBtn);
+    sliderWrap.appendChild(slider);
+    sliderWrap.appendChild(plusBtn);
+    sliderWrap.appendChild(valLabel);
+    row.appendChild(lbl);
+    row.appendChild(sliderWrap);
+    return row;
+}
 
     // BGMスライダー
     box.appendChild(makeRow('🎵 BGM', 'vol_bgm', savedBgm, v => {
