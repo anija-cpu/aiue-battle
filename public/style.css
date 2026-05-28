@@ -251,7 +251,7 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
     top: 20px;
     right: 20px;
     width: 220px;
-    max-height: 400px;
+    max-height: 88px; /* 4行分 */
     overflow-y: auto;
     background: rgba(255,248,235,0.92);
     border: 2px solid #c8965a;
