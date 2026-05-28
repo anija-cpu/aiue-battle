@@ -57,6 +57,7 @@ const AudioManager = {
         keyHit:    new Audio('/audio/パッ.mp3'),
         hit:       new Audio('/audio/男衆「オウ！」.mp3'),
         win:       new Audio('/audio/男衆「イエーイ！」.mp3'),
+        myTurn: new Audio('/audio/チリン.mp3'),
     },
 
     bgmFiles: {
@@ -347,6 +348,7 @@ function hideTurnPanel() {
 // =====================
 function updateTurnDisplay(currentTurnId) {
     if (myTurn) {
+        AudioManager.playSE('myTurn');
         result.textContent = "⚔️ あなたのターン！";
         result.style.color = "#c0392b";
         document.getElementById("keyboardArea2").classList.remove("disabled");
@@ -602,8 +604,10 @@ socket.on("timerStart", (data) => {
 socket.on("turnTimeout", (data) => {
     stopCountdown();
     myTurn = data.nextTurn === socket.id;
+    if (myTurn) AudioManager.playSE('myTurn');
 
     if (myTurn) {
+        AudioManager.playSE('myTurn');
         result.textContent = "⏰ 時間切れ！あなたのターン！";
         result.style.color = "#c0392b";
         document.getElementById("keyboardArea2").classList.remove("disabled");
@@ -657,6 +661,7 @@ socket.on("attackResult", (data) => {
     });
 
     myTurn = !data.turnChanged;
+    if (myTurn) AudioManager.playSE('myTurn');
     if (data.turnChanged) {
         document.getElementById("keyboardArea2").classList.add("disabled");
         addLog(`→ ${playerNames[data.nextTurn]}のターン`);
@@ -706,6 +711,7 @@ socket.on("attacked", (data) => {
     });
 
     myTurn = data.nextTurn === socket.id;
+    if (myTurn) AudioManager.playSE('myTurn');
     addLog(`→ ${playerNames[data.nextTurn]}のターン`);
     updateTurnDisplay(data.nextTurn);
     updateTurnPanel(data.nextTurn, turnOrder, playerNames, eliminated);
@@ -846,6 +852,18 @@ socket.on("themeDecided", (data) => {
     document.getElementById("themeDisplay").textContent = display;
     document.getElementById("watchTheme").textContent = display;
     if (isSpectator) return;
+
+    // ↓追加：現在のポイント数を表示
+    const ptDisplay = document.getElementById("inputScoreDisplay");
+    if (ptDisplay) {
+        const lines = players.map(id => {
+            const pt = scores[id] || 0;
+            const ptText = targetScore > 0 ? `${pt}/${targetScore}pt` : `${pt}pt`;
+            return `${playerNames[id]}：${ptText}`;
+        });
+        ptDisplay.textContent = lines.join("　");
+    }
+
     showScreen("screenInput");
 });
 
