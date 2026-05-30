@@ -1,9 +1,6 @@
-/* ==============================
-   背景：木目テクスチャ
-   ============================== */
 body {
-    background-color: #c8a87a;
-    background-image: url('/bg.png');
+    background-color: #b8e0f7;
+    background-image: url('/aiuebuttle_background.png');
     background-size: cover;
     background-position: center top;
     background-attachment: fixed;
