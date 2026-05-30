@@ -29,39 +29,48 @@ body {
     box-shadow: 0 6px 32px rgba(0,0,0,0.25), 0 0 0 3px rgba(100,180,255,0.4);
 }
 
-h1 { font-size: 2.2rem; color: #5a2d00; letter-spacing: 0.1em; margin-bottom: 20px; text-shadow: 1px 1px 0 rgba(255,255,255,0.6); }
-h2 { color: #6b3a10; }
+h1 { 
+    font-size: 2.8rem; 
+    color: #ff6b9d; 
+    letter-spacing: 0.1em; 
+    margin-bottom: 20px; 
+    text-shadow: 3px 3px 0 #fff, 5px 5px 0 rgba(255,107,157,0.3);
+    font-weight: bold;
+}
+h2 { color: #7b5ea7; font-weight: bold; }
 
 /* ==============================
    入力・ボタン
    ============================== */
 input:not(.card) {
     padding: 8px 14px;
-    border-radius: 8px;
-    border: 2px solid #c8965a;
-    background: #fffdf5;
-    color: #3b1f0a;
+    border-radius: 20px;
+    border: 2px solid #ff9fc8;
+    background: #fff;
+    color: #5a2d6a;
     font-size: 16px;
     margin: 6px;
+    font-weight: bold;
+    outline: none;
 }
 
 button {
     cursor: pointer;
-    background: #c8813a;
+    background: linear-gradient(180deg, #ff9fc8, #ff6b9d);
     color: #fff;
     border: none;
-    border-radius: 8px;
+    border-radius: 20px;
     padding: 8px 20px;
     font-size: 16px;
     margin: 6px;
     font-family: inherit;
-    box-shadow: 0 3px 0 #8a4a10;
+    font-weight: bold;
+    box-shadow: 0 4px 0 #d4478a;
     transition: transform 0.08s, box-shadow 0.08s;
 }
-button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 5px 0 #8a4a10; }
-button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #8a4a10; }
-button:disabled { background: #bbb; box-shadow: 0 2px 0 #888; cursor: not-allowed; }
-
+button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 0 #d4478a; }
+button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #d4478a; }
+button:disabled { background: linear-gradient(180deg, #ccc, #aaa); box-shadow: 0 3px 0 #888; cursor: not-allowed; }
 hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
 
 /* ==============================
