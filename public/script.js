@@ -36,11 +36,11 @@ let playerNames = {};
 let eliminated = [];
 let isSpectator = false;
 let winCounts = {};
-let answered = false; // 決定後はDEL無効
-let scores = {};           // 累積得点（サーバーから受信）
-let timerDuration = 0;     // 制限時間（秒）
-let targetScore = 0;       // 勝利ポイント（0=無制限）
-let countdownInterval = null; // カウントダウン用インターバル
+let answered = false;
+let scores = {};
+let timerDuration = 0;
+let targetScore = 0;
+let countdownInterval = null;
 
 // =====================
 // Audio管理
@@ -48,10 +48,9 @@ let countdownInterval = null; // カウントダウン用インターバル
 const AudioManager = {
     bgm: null,
     firstHitDone: false,
-    _bgmVolume: 0.15,  // スライダーで動的に変わる
-    _seVolume:  0.25,  // スライダーで動的に変わる
+    _bgmVolume: 0.15,
+    _seVolume:  0.25,
 
-    // SE用Audio（使い回しで多重再生OK）
     _se: {
         btnClick:  new Audio('/audio/決定ボタンを押す44.mp3'),
         keyHit:    new Audio('/audio/パッ.mp3'),
@@ -66,7 +65,6 @@ const AudioManager = {
         battleHit:  '/audio/バトル中～1文字空いた～.mp3',
     },
 
-    // BGM再生（ループ）
     playBGM(name) {
         if (this.bgm) {
             this.bgm.pause();
@@ -80,7 +78,6 @@ const AudioManager = {
         });
     },
 
-    // BGM停止
     stopBGM() {
         if (this.bgm) {
             this.bgm.pause();
@@ -89,7 +86,6 @@ const AudioManager = {
         }
     },
 
-    // SE再生（複数同時可）
     playSE(name) {
         const src = this._se[name];
         if (!src) return;
@@ -98,7 +94,6 @@ const AudioManager = {
         clone.play().catch(() => {});
     },
 
-    // 初めてヒットしたときのBGM切替
     onHit() {
         this.playSE('hit');
         if (!this.firstHitDone) {
@@ -107,35 +102,22 @@ const AudioManager = {
         }
     },
 
-    // 再戦リセット
     reset() {
         this.firstHitDone = false;
     },
 };
 
-// =====================
-// 全ボタン共通クリックSE（keyboard2は除外 → attackKanaで個別処理）
-// 初回クリックでブラウザのオートプレイ制限もアンロック
-// =====================
-// TOP画面BGM：ページ読み込み直後に自動再生を試みる
-// ブラウザに止められた場合は初回クリックで再生
-// =====================
 let _audioUnlocked = false;
-
-// まず自動再生を試みる
 AudioManager.playBGM('lobby');
 
 document.addEventListener('click', e => {
-    // BGMがまだ再生されていなければ初回クリックで開始
     if (!_audioUnlocked) {
         _audioUnlocked = true;
-        // SEのアンロック
         Object.values(AudioManager._se).forEach(a => {
             const clone = a.cloneNode();
             clone.volume = 0;
             clone.play().then(() => clone.pause()).catch(() => {});
         });
-        // BGMが止まっていたら再開
         if (!AudioManager.bgm || AudioManager.bgm.paused) {
             AudioManager.playBGM('lobby');
         }
@@ -150,7 +132,7 @@ socket.on("charUpdate", (data) => {
 });
 
 // =====================
-// 画面切り替え
+// 画面切り替え（screenTitleを含む）
 // =====================
 function showScreen(id) {
     ["screenTitle","screenRoom","screenWait","screenTheme","screenInput","screenBattle","screenWatch"].forEach(s => {
@@ -173,13 +155,13 @@ updateSelection();
 // =====================
 function inputKana(kana) {
     if (kana === "DEL") {
-        if (answered) return; // 決定後はDEL無効
+        if (answered) return;
         inputs[currentIndex].value = "";
         if (currentIndex > 0) currentIndex--;
         updateSelection();
         return;
     }
-    if (answered) return; // 決定後は入力も無効
+    if (answered) return;
     inputs[currentIndex].value = kana;
     if (currentIndex < inputs.length - 1) currentIndex++;
     updateSelection();
@@ -191,7 +173,7 @@ function inputKana(kana) {
 function attackKana(kana, btn) {
     if (!myTurn) return;
     if (usedKana.includes(kana)) return;
-    AudioManager.playSE('keyHit'); // キー選択SE
+    AudioManager.playSE('keyHit');
     usedKana.push(kana);
     btn.disabled = true;
     btn.style.backgroundColor = "gray";
@@ -209,8 +191,7 @@ const kanaList = [
     "","ろ","よ","も","ほ","の","と","そ","こ","お",
 ];
 
-// キャラ選択
-let myChar = 1; // デフォルトはchar1
+let myChar = 1;
 let playerChars = {};
 
 function buildCharSelect() {
@@ -232,10 +213,10 @@ function buildCharSelect() {
             img.style.borderColor = "#c8813a";
             socket.emit("selectChar", i);
         };
-        if (i === 1) img.style.borderColor = "#c8813a"; // デフォルト選択
+        if (i === 1) img.style.borderColor = "#c8813a";
         grid.appendChild(img);
     }
-    socket.emit("selectChar", myChar); // 入室時にデフォルト送信
+    socket.emit("selectChar", myChar);
 }
 
 function buildKeyboard(container, mode) {
@@ -275,7 +256,7 @@ buildKeyboard(keyboard2, "battle");
 buildKeyboard(document.getElementById("watchKeyboard"), "watch");
 
 // =====================
-// カウントダウン表示（バトル画面に動的追加）
+// カウントダウン
 // =====================
 const countdownDisplay = document.createElement('div');
 countdownDisplay.id = 'countdownDisplay';
@@ -324,7 +305,7 @@ function buildAllPlayerCards(playersArr, playerNamesObj, opponentLengths, myId) 
 
         const label = document.createElement("p");
         label.id = "playerLabel-" + id;
-        
+
         const charId = playerChars[id] || 1;
         const charImg = document.createElement("img");
         charImg.src = `/char${charId}.png`;
@@ -355,7 +336,7 @@ function buildAllPlayerCards(playersArr, playerNamesObj, opponentLengths, myId) 
 }
 
 // =====================
-// ターンパネル更新（左上固定）
+// ターンパネル更新
 // =====================
 function updateTurnPanel(currentTurnId, order, names, eliminatedList) {
     const panel = document.getElementById("turnPanel");
@@ -367,29 +348,29 @@ function updateTurnPanel(currentTurnId, order, names, eliminatedList) {
 
     orderEl.innerHTML = "";
     (order || []).forEach(id => {
-    const span = document.createElement("span");
-    const wc = winCounts[id] || 0;
-    const pt = scores[id] || 0;
-    const ptText = targetScore > 0 ? `${pt}/${targetScore}pt` : `${pt}pt`;
+        const span = document.createElement("span");
+        const wc = winCounts[id] || 0;
+        const pt = scores[id] || 0;
+        const ptText = targetScore > 0 ? `${pt}/${targetScore}pt` : `${pt}pt`;
 
-    const charId = playerChars[id] || 1;
-    const charImg = document.createElement("img");
-    charImg.src = `/char${charId}.png`;
-    charImg.style.cssText = `
-        width:24px; height:24px; object-fit:contain;
-        vertical-align:middle; margin-right:4px;
-    `;
-    span.appendChild(charImg);
-    span.appendChild(document.createTextNode((names[id] || id) + ` ${wc}勝 ${ptText}`));
+        const charId = playerChars[id] || 1;
+        const charImg = document.createElement("img");
+        charImg.src = `/char${charId}.png`;
+        charImg.style.cssText = `
+            width:24px; height:24px; object-fit:contain;
+            vertical-align:middle; margin-right:4px;
+        `;
+        span.appendChild(charImg);
+        span.appendChild(document.createTextNode((names[id] || id) + ` ${wc}勝 ${ptText}`));
 
-    span.className = "turn-order-name";
-    if ((eliminatedList || []).includes(id)) {
-        span.classList.add("turn-order-eliminated");
-    } else if (id === currentTurnId) {
-        span.classList.add("turn-order-active");
-    }
-    orderEl.appendChild(span);
-});
+        span.className = "turn-order-name";
+        if ((eliminatedList || []).includes(id)) {
+            span.classList.add("turn-order-eliminated");
+        } else if (id === currentTurnId) {
+            span.classList.add("turn-order-active");
+        }
+        orderEl.appendChild(span);
+    });
 
     panel.hidden = false;
 }
@@ -399,7 +380,6 @@ function hideTurnPanel() {
     if (currentEl) currentEl.textContent = "🏆 ゲーム終了";
 }
 
-// =====================
 function updateTurnDisplay(currentTurnId) {
     if (myTurn) {
         AudioManager.playSE('myTurn');
@@ -461,7 +441,6 @@ socket.on("roomCreated", (roomId) => {
     AudioManager.playBGM('lobby');
     buildCharSelect();
 
-    // 部屋ID表示 + コピーボタン
     waitRoomId.innerHTML = "";
     const idText = document.createElement("span");
     idText.textContent = "部屋ID: " + roomId;
@@ -477,7 +456,6 @@ socket.on("roomCreated", (roomId) => {
     waitRoomId.appendChild(idText);
     waitRoomId.appendChild(copyBtn);
 
-    // ⏱ タイマー設定（部屋主のみ）
     const timerRow = document.createElement('div');
     timerRow.style.cssText = 'margin: 12px 0 4px; font-size: 14px; color: #5a2d00;';
     timerRow.innerHTML = `
@@ -499,7 +477,6 @@ socket.on("roomCreated", (roomId) => {
         socket.emit('setTimerDuration', timerDuration);
     };
 
-    // 🏆 勝利ポイント設定（部屋主のみ）
     const scoreRow = document.createElement('div');
     scoreRow.style.cssText = 'margin: 8px 0 4px; font-size: 14px; color: #5a2d00;';
     scoreRow.innerHTML = `
@@ -524,12 +501,9 @@ socket.on("roomCreated", (roomId) => {
     document.getElementById("startInfo").textContent = "2人以上集まったらゲーム開始を押してください";
 });
 
-// =====================
-// socket：ルーム参加完了
-// =====================
 socket.on("joinedRoom", (roomId) => {
     myRoomId = roomId;
-    AudioManager.playBGM('lobby'); // ロビーBGM開始
+    AudioManager.playBGM('lobby');
     waitRoomId.textContent = "部屋ID: " + roomId + " に参加しました";
     showScreen("screenWait");
     document.getElementById("startGameBtn").hidden = true;
@@ -537,9 +511,6 @@ socket.on("joinedRoom", (roomId) => {
     buildCharSelect();
 });
 
-// =====================
-// socket：部屋情報更新
-// =====================
 socket.on("roomInfo", (data) => {
     players = data.players;
     playerNames = data.playerNames;
@@ -552,25 +523,16 @@ socket.on("roomInfo", (data) => {
     });
 });
 
-// =====================
-// ゲーム開始ボタン
-// =====================
 document.getElementById("startGameBtn").onclick = () => {
     socket.emit("startGame");
 };
 
-// =====================
-// socket：2人以上揃った
-// =====================
 socket.on("ready", (data) => {
     turnOrder = data.turnOrder;
     playerNames = data.playerNames;
     showScreen("screenTheme");
 });
 
-// =====================
-// 単語確定
-// =====================
 checkButton.onclick = () => {
     answer = Array.from(inputs).map(i => i.value || "×");
     const validCount = answer.filter(k => k !== "×").length;
@@ -587,9 +549,6 @@ checkButton.onclick = () => {
     result.textContent = "単語を設定しました！全員の入力を待っています...";
 };
 
-// =====================
-// socket：ゲーム開始
-// =====================
 socket.on("gameStart", (data) => {
     turnOrder = data.turnOrder;
     playerNames = data.playerNames;
@@ -607,12 +566,10 @@ socket.on("gameStart", (data) => {
     myTurn = data.firstTurn === socket.id;
     playerChars = data.playerChars || {};
 
-    // 勝利数初期化
     data.players.forEach(id => {
         if (winCounts[id] === undefined) winCounts[id] = 0;
     });
 
-    // 自分のカードに×を表示
     answer.forEach((kana, i) => {
         const card = document.getElementById(`card-${socket.id}-${i}`);
         if (card) {
@@ -626,7 +583,6 @@ socket.on("gameStart", (data) => {
         }
     });
 
-    // 自分の単語を自分だけに表示（カード下）
     const myArea = document.getElementById("playerArea-" + socket.id);
     if (myArea) {
         const old = document.getElementById("myWordDisplay");
@@ -648,23 +604,16 @@ socket.on("gameStart", (data) => {
     addLog(`ターン順: ${data.turnOrder.map(id => data.playerNames[id]).join(" → ")}`);
 });
 
-// =====================
-// socket：タイマー開始
-// =====================
 socket.on("timerStart", (data) => {
     startCountdown(data.duration);
 });
 
-// =====================
-// socket：時間切れ（ターン強制交代）
-// =====================
 socket.on("turnTimeout", (data) => {
     stopCountdown();
     myTurn = data.nextTurn === socket.id;
     if (myTurn) AudioManager.playSE('myTurn');
 
     if (myTurn) {
-        AudioManager.playSE('myTurn');
         result.textContent = "⏰ 時間切れ！あなたのターン！";
         result.style.color = "#c0392b";
         document.getElementById("keyboardArea2").classList.remove("disabled");
@@ -679,11 +628,8 @@ socket.on("turnTimeout", (data) => {
     updateTurnPanel(data.nextTurn, turnOrder, playerNames, eliminated);
 });
 
-// =====================
-// socket：攻撃結果（自分が攻撃）
-// =====================
 socket.on("attackResult", (data) => {
-    stopCountdown(); // 攻撃確定 → カウントダウン停止（サーバーからtimerStartが来る）
+    stopCountdown();
     Object.entries(data.hitResults).forEach(([id, indexes]) => {
         indexes.forEach(i => {
             const card = document.getElementById(`card-${id}-${i}`);
@@ -692,7 +638,7 @@ socket.on("attackResult", (data) => {
     });
 
     if (data.hitSelf && data.hitAny) {
-        AudioManager.onHit(); // ヒットSE + BGM切替チェック
+        AudioManager.onHit();
         addLog(`⚔️ 自分→「${data.kana}」ヒット＋自爆 ターン交代`);
         result.textContent = "ヒット！でも自爆... ターン交代";
         result.style.color = "#888";
@@ -701,7 +647,7 @@ socket.on("attackResult", (data) => {
         result.textContent = "自爆！ターン交代";
         result.style.color = "#888";
     } else if (data.hitAny) {
-        AudioManager.onHit(); // ヒットSE + BGM切替チェック
+        AudioManager.onHit();
         addLog(`⚔️ 自分→「${data.kana}」ヒット！`);
         result.textContent = "ヒット！続けて攻撃！";
         result.style.color = "#c0392b";
@@ -729,11 +675,8 @@ socket.on("attackResult", (data) => {
     }
 });
 
-// =====================
-// socket：被弾（他プレイヤーが攻撃）
-// =====================
 socket.on("attacked", (data) => {
-    stopCountdown(); // カウントダウン停止（サーバーからtimerStartが来る）
+    stopCountdown();
     Object.entries(data.hitResults).forEach(([id, indexes]) => {
         indexes.forEach(i => {
             const card = document.getElementById(`card-${id}-${i}`);
@@ -750,12 +693,12 @@ socket.on("attacked", (data) => {
 
     const attackerName = playerNames[data.attacker] || "?";
     if (data.hitSelf && data.hitAny) {
-        AudioManager.onHit(); // ヒットSE + BGM切替チェック
+        AudioManager.onHit();
         addLog(`⚔️ ${attackerName}→「${data.kana}」ヒット＋自爆`);
     } else if (data.hitSelf) {
         addLog(`💥 ${attackerName}→「${data.kana}」自爆`);
     } else if (data.hitAny) {
-        AudioManager.onHit(); // ヒットSE + BGM切替チェック
+        AudioManager.onHit();
         addLog(`⚔️ ${attackerName}→「${data.kana}」ヒット！`);
     } else {
         addLog(`❌ ${attackerName}→「${data.kana}」ミス`);
@@ -774,9 +717,6 @@ socket.on("attacked", (data) => {
     updateTurnPanel(data.nextTurn, turnOrder, playerNames, eliminated);
 });
 
-// =====================
-// socket：ゲーム終了
-// =====================
 socket.on("gameEnd", (data) => {
     AudioManager.stopBGM();
     AudioManager.playSE('win');
@@ -800,15 +740,11 @@ socket.on("gameEnd", (data) => {
 
     updateTurnPanel(null, turnOrder, playerNames, eliminated);
     hideTurnPanel();
-
     document.getElementById("rematchBtn").hidden = false;
 });
 
-// =====================
-// socket：マッチ終了（目標ポイント達成）
-// =====================
 socket.on("matchEnd", (data) => {
-    scores = {}; // ローカルもリセット
+    scores = {};
     const isWinner = data.winner === socket.id;
 
     const banner = document.createElement("div");
@@ -820,7 +756,6 @@ socket.on("matchEnd", (data) => {
         animation: fadeInBanner 0.5s ease;
     `;
 
-    // アニメーション定義（初回のみ）
     if (!document.getElementById('bannerStyle')) {
         const style = document.createElement('style');
         style.id = 'bannerStyle';
@@ -840,11 +775,8 @@ socket.on("matchEnd", (data) => {
     const img = document.createElement("img");
     img.src = isWinner ? '/win.png' : '/lose.png';
     img.style.cssText = `
-        max-width: 88vw;
-        max-height: 70vh;
-        object-fit: contain;
-        border-radius: 12px;
-        box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+        max-width: 88vw; max-height: 70vh; object-fit: contain;
+        border-radius: 12px; box-shadow: 0 8px 40px rgba(0,0,0,0.6);
         animation: popIn 0.4s ease 0.1s both;
     `;
 
@@ -860,11 +792,7 @@ socket.on("matchEnd", (data) => {
 
     const btn = document.createElement("button");
     btn.textContent = "続ける";
-    btn.style.cssText = `
-        margin-top: 20px;
-        font-size: 17px; padding: 10px 40px;
-        animation: popIn 0.4s ease 0.4s both;
-    `;
+    btn.style.cssText = `margin-top: 20px; font-size: 17px; padding: 10px 40px; animation: popIn 0.4s ease 0.4s both;`;
     btn.onclick = () => banner.remove();
 
     banner.appendChild(img);
@@ -903,14 +831,12 @@ document.getElementById("freeThemeBtn").onclick = () => {
     document.getElementById("themeWait").textContent = "選択中...";
 };
 
-// お題確定
 socket.on("themeDecided", (data) => {
     const display = `お題：${data.theme}`;
     document.getElementById("themeDisplay").textContent = display;
     document.getElementById("watchTheme").textContent = display;
     if (isSpectator) return;
 
-    // ↓追加：現在のポイント数を表示
     const ptDisplay = document.getElementById("inputScoreDisplay");
     if (ptDisplay) {
         const lines = players.map(id => {
@@ -924,9 +850,6 @@ socket.on("themeDecided", (data) => {
     showScreen("screenInput");
 });
 
-// =====================
-// 再戦
-// =====================
 socket.on("rematchVoteUpdate", (data) => {
     document.getElementById("rematchVoteInfo").textContent =
         `再戦希望: ${data.votes}/${data.total}`;
@@ -947,7 +870,6 @@ socket.on("rematchReady", () => {
     answered = false;
     eliminated = [];
     turnOrder = [];
-    // scoresはリセットしない（累積）
 
     keyboard2.querySelectorAll("button").forEach(btn => {
         btn.disabled = false;
@@ -999,9 +921,6 @@ socket.on("joinedAsSpectator", (data) => {
     showScreen("screenWatch");
 });
 
-// =====================
-// 観戦：ゲーム開始
-// =====================
 socket.on("spectatorGameStart", (data) => {
     const watchArea = document.getElementById("watchPlayersArea");
     watchArea.innerHTML = "";
@@ -1034,9 +953,6 @@ socket.on("spectatorGameStart", (data) => {
     showScreen("screenWatch");
 });
 
-// =====================
-// 観戦：攻撃更新
-// =====================
 socket.on("spectatorAttack", (data) => {
     Object.entries(data.hitResults).forEach(([id, indexes]) => {
         indexes.forEach(i => {
@@ -1077,9 +993,6 @@ socket.on("spectatorAttack", (data) => {
     updateTurnPanel(data.nextTurn, data.players, data.playerNames, watchEliminated);
 });
 
-// =====================
-// 観戦：ゲーム終了
-// =====================
 socket.on("spectatorGameEnd", (data) => {
     const log = document.getElementById("watchLog");
     const line = document.createElement("p");
@@ -1091,9 +1004,6 @@ socket.on("spectatorGameEnd", (data) => {
     hideTurnPanel();
 });
 
-// =====================
-// socket：エラー
-// =====================
 socket.on("errorMessage", (msg) => {
     roomInfo.textContent = "エラー: " + msg;
 });
@@ -1103,19 +1013,15 @@ socket.on("connect", () => {
 });
 
 // =====================
-// 音量コントロールパネル（右上固定）
+// 音量コントロールパネル
 // =====================
 (function buildVolumePanel() {
-    // localStorageから保存済み音量を読み込む
     const savedBgm = parseFloat(localStorage.getItem('vol_bgm') ?? '0.15');
     const savedSe  = parseFloat(localStorage.getItem('vol_se')  ?? '0.25');
-
-    // 起動時に反映
     AudioManager._bgmVolume = savedBgm;
     AudioManager._seVolume  = savedSe;
     if (AudioManager.bgm) AudioManager.bgm.volume = savedBgm;
 
-    // --- パネル本体 ---
     const panel = document.createElement('div');
     panel.id = 'volumePanel';
     panel.style.cssText = `
@@ -1123,7 +1029,6 @@ socket.on("connect", () => {
         display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
     `;
 
-    // --- トグルボタン ---
     const toggleBtn = document.createElement('button');
     toggleBtn.textContent = '🔊';
     toggleBtn.title = '音量調節';
@@ -1134,7 +1039,6 @@ socket.on("connect", () => {
         box-shadow: 0 2px 8px rgba(80,40,0,0.2); margin: 0;
     `;
 
-    // --- スライダーボックス ---
     const box = document.createElement('div');
     box.style.cssText = `
         background: rgba(255,248,235,0.97); border: 2px solid #c8965a;
@@ -1144,86 +1048,58 @@ socket.on("connect", () => {
     `;
 
     function makeRow(label, storageKey, initialVal, onChange) {
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex; flex-direction:column; gap:4px;';
-
-    const lbl = document.createElement('label');
-    lbl.style.cssText = 'font-size:12px; color:#5a2d00; font-weight:bold;';
-    lbl.textContent = label;
-
-    const sliderWrap = document.createElement('div');
-    sliderWrap.style.cssText = 'display:flex; align-items:center; gap:4px;';
-
-    const minusBtn = document.createElement('button');
-    minusBtn.textContent = '－';
-    minusBtn.style.cssText = `
-        width:24px; height:24px; font-size:14px; padding:0;
-        border-radius:4px; cursor:pointer; margin:0;
-        background:#fff8ef; border:2px solid #c8965a;
-        box-shadow:0 2px 0 #a07040; color:#5a2d00;
-        flex-shrink:0;
-    `;
-
-    const slider = document.createElement('input');
-    slider.type = 'range';
-    slider.min = '0'; slider.max = '1'; slider.step = '0.01';
-    slider.value = initialVal;
-    slider.style.cssText = 'flex:1; accent-color:#c8813a; cursor:pointer;';
-
-    const plusBtn = document.createElement('button');
-    plusBtn.textContent = '＋';
-    plusBtn.style.cssText = minusBtn.style.cssText;
-
-    const valLabel = document.createElement('span');
-    valLabel.style.cssText = 'font-size:12px; color:#5a2d00; width:32px; text-align:right;';
-    valLabel.textContent = Math.round(initialVal * 100) + '%';
-
-    function applyValue(v) {
-        v = Math.min(1, Math.max(0, Math.round(v * 100) / 100));
-        slider.value = v;
-        valLabel.textContent = Math.round(v * 100) + '%';
-        localStorage.setItem(storageKey, v);
-        onChange(v);
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; flex-direction:column; gap:4px;';
+        const lbl = document.createElement('label');
+        lbl.style.cssText = 'font-size:12px; color:#5a2d00; font-weight:bold;';
+        lbl.textContent = label;
+        const sliderWrap = document.createElement('div');
+        sliderWrap.style.cssText = 'display:flex; align-items:center; gap:4px;';
+        const minusBtn = document.createElement('button');
+        minusBtn.textContent = '－';
+        minusBtn.style.cssText = `width:24px;height:24px;font-size:14px;padding:0;border-radius:4px;cursor:pointer;margin:0;background:#fff8ef;border:2px solid #c8965a;box-shadow:0 2px 0 #a07040;color:#5a2d00;flex-shrink:0;`;
+        const slider = document.createElement('input');
+        slider.type = 'range'; slider.min = '0'; slider.max = '1'; slider.step = '0.01';
+        slider.value = initialVal;
+        slider.style.cssText = 'flex:1; accent-color:#c8813a; cursor:pointer;';
+        const plusBtn = document.createElement('button');
+        plusBtn.textContent = '＋';
+        plusBtn.style.cssText = minusBtn.style.cssText;
+        const valLabel = document.createElement('span');
+        valLabel.style.cssText = 'font-size:12px; color:#5a2d00; width:32px; text-align:right;';
+        valLabel.textContent = Math.round(initialVal * 100) + '%';
+        function applyValue(v) {
+            v = Math.min(1, Math.max(0, Math.round(v * 100) / 100));
+            slider.value = v;
+            valLabel.textContent = Math.round(v * 100) + '%';
+            localStorage.setItem(storageKey, v);
+            onChange(v);
+        }
+        slider.addEventListener('input', () => applyValue(parseFloat(slider.value)));
+        minusBtn.addEventListener('click', e => { e.stopPropagation(); applyValue(parseFloat(slider.value) - 0.01); });
+        plusBtn.addEventListener('click', e => { e.stopPropagation(); applyValue(parseFloat(slider.value) + 0.01); });
+        sliderWrap.appendChild(minusBtn);
+        sliderWrap.appendChild(slider);
+        sliderWrap.appendChild(plusBtn);
+        sliderWrap.appendChild(valLabel);
+        row.appendChild(lbl);
+        row.appendChild(sliderWrap);
+        return row;
     }
 
-    slider.addEventListener('input', () => applyValue(parseFloat(slider.value)));
-    minusBtn.addEventListener('click', e => {
-        e.stopPropagation();
-        applyValue(parseFloat(slider.value) - 0.01);
-    });
-    plusBtn.addEventListener('click', e => {
-        e.stopPropagation();
-        applyValue(parseFloat(slider.value) + 0.01);
-    });
-
-    sliderWrap.appendChild(minusBtn);
-    sliderWrap.appendChild(slider);
-    sliderWrap.appendChild(plusBtn);
-    sliderWrap.appendChild(valLabel);
-    row.appendChild(lbl);
-    row.appendChild(sliderWrap);
-    return row;
-}
-
-    // BGMスライダー
     box.appendChild(makeRow('🎵 BGM', 'vol_bgm', savedBgm, v => {
         AudioManager._bgmVolume = v;
         if (AudioManager.bgm) AudioManager.bgm.volume = v;
     }));
-
-    // SEスライダー
     box.appendChild(makeRow('🔔 SE', 'vol_se', savedSe, v => {
         AudioManager._seVolume = v;
     }));
 
-    // トグル動作
     toggleBtn.addEventListener('click', e => {
         e.stopPropagation();
         box.style.display = box.style.display === 'none' ? 'flex' : 'none';
     });
-    document.addEventListener('click', () => {
-        box.style.display = 'none';
-    });
+    document.addEventListener('click', () => { box.style.display = 'none'; });
     box.addEventListener('click', e => e.stopPropagation());
 
     panel.appendChild(toggleBtn);
@@ -1275,8 +1151,12 @@ socket.on("roomList", (list) => {
     });
 });
 
+// =====================
+// スタートボタン → ルーム画面へ
+// =====================
 document.getElementById("startBtn").onclick = () => {
     showScreen("screenRoom");
 };
 
+// タイトル画面から開始
 showScreen("screenTitle");
