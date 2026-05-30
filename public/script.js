@@ -1151,9 +1151,7 @@ socket.on("roomList", (list) => {
     });
 });
 
-// =====================
 // スタートボタン → ルーム画面へ
-// =====================
 document.getElementById("startBtn").onclick = () => {
     showScreen("screenRoom");
 };
