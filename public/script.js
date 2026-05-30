@@ -153,10 +153,10 @@ socket.on("charUpdate", (data) => {
 // 画面切り替え
 // =====================
 function showScreen(id) {
-    ["screenRoom","screenWait","screenTheme","screenInput","screenBattle","screenWatch"].forEach(s => {
+    ["screenTitle","screenRoom","screenWait","screenTheme","screenInput","screenBattle","screenWatch"].forEach(s => {
         document.getElementById(s).hidden = (s !== id);
-        buildCharSelect();
     });
+    if (id === "screenWait") buildCharSelect();
 }
 
 // =====================
@@ -1274,3 +1274,9 @@ socket.on("roomList", (list) => {
         container.appendChild(row);
     });
 });
+
+document.getElementById("startBtn").onclick = () => {
+    showScreen("screenRoom");
+};
+
+showScreen("screenTitle");
