@@ -136,7 +136,11 @@ socket.on("charUpdate", (data) => {
 // =====================
 function showScreen(id) {
     ["screenTitle","screenRoom","screenWait","screenTheme","screenInput","screenBattle","screenWatch"].forEach(s => {
-        document.getElementById(s).hidden = (s !== id);
+        const el = document.getElementById(s);
+        el.hidden = (s !== id);
+        if (s === "screenTitle") {
+            el.style.display = (s === id) ? "flex" : "none";
+        }
     });
     if (id === "screenWait") buildCharSelect();
 }
