@@ -21,11 +21,21 @@
     <input id="nameInput" placeholder="プレイヤー名">
     <button id="createRoom">部屋を作る</button>
     <hr>
+    <div style="margin:12px 0;">
     <input id="nameInput2" placeholder="プレイヤー名">
-    <input id="roomInput" placeholder="部屋ID">
+    <button id="refreshRoomList">🔄 ルーム一覧を更新</button>
+</div>
+<div id="roomListContainer" style="
+    max-height: 200px; overflow-y: auto;
+    border: 2px solid #a0c8ff; border-radius: 12px;
+    margin: 8px 0; display: none;
+"></div>
+<div style="margin:8px 0;">
+    <input id="roomInput" placeholder="部屋ID（直接入力も可）">
     <button id="joinRoom">参加</button>
     <button id="watchRoom">観戦</button>
-    <p id="roomInfo"></p>
+</div>
+<p id="roomInfo"></p>
     <hr>
     <div id="gameDescription">
         <h2>あいうえバトルとは</h2>
