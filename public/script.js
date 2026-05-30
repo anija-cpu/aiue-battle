@@ -223,7 +223,7 @@ function buildCharSelect() {
         img.style.cssText = `
             width: 72px; height: 72px; object-fit: contain;
             border: 3px solid transparent; border-radius: 10px;
-            cursor: pointer; background: rgba(255,255,255,0.5);
+            cursor: pointer; background: transparent;
             transition: border 0.15s;
         `;
         img.onclick = () => {
