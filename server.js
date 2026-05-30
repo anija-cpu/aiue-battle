@@ -311,6 +311,18 @@ io.on("connection", (socket) => {
     io.to(socket.roomId).emit("charUpdate", { playerChars: room.playerChars });
     });
 
+    socket.on("getRoomList", () => {
+    const list = Object.entries(rooms)
+        .filter(([id, room]) => !room.started && room.players.length > 0)
+        .map(([id, room]) => ({
+            roomId: id,
+            hostName: room.playerNames[room.players[0]] || "？",
+            playerCount: room.players.length,
+            maxPlayers: 8,
+        }));
+    socket.emit("roomList", list);
+    });
+
     // =====================
     // 再戦
     // =====================

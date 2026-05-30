@@ -1230,3 +1230,44 @@ socket.on("connect", () => {
     panel.appendChild(box);
     document.body.appendChild(panel);
 })();
+
+document.getElementById("refreshRoomList").onclick = () => {
+    socket.emit("getRoomList");
+};
+
+socket.on("roomList", (list) => {
+    const container = document.getElementById("roomListContainer");
+    container.style.display = "block";
+    container.innerHTML = "";
+
+    if (list.length === 0) {
+        container.innerHTML = `<p style="padding:12px; color:#888;">待機中のルームはありません</p>`;
+        return;
+    }
+
+    list.forEach(room => {
+        const row = document.createElement("div");
+        row.style.cssText = `
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 14px; border-bottom: 1px solid #e0e8ff;
+            cursor: pointer; transition: background 0.1s;
+        `;
+        row.innerHTML = `
+            <span style="font-weight:bold; color:#5a2d6a;">${room.roomId}</span>
+            <span style="color:#7b5ea7;">👑 ${room.hostName}</span>
+            <span style="color:#5a2d6a;">👥 ${room.playerCount}/8人</span>
+        `;
+        row.onclick = () => {
+            document.getElementById("roomInput").value = room.roomId;
+            container.querySelectorAll("div").forEach(r => r.style.background = "");
+            row.style.background = "rgba(160,120,255,0.2)";
+        };
+        row.onmouseover = () => row.style.background = "rgba(160,120,255,0.1)";
+        row.onmouseout = () => {
+            if (document.getElementById("roomInput").value !== room.roomId) {
+                row.style.background = "";
+            }
+        };
+        container.appendChild(row);
+    });
+});
