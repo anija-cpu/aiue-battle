@@ -1231,9 +1231,12 @@ socket.on("connect", () => {
     document.body.appendChild(panel);
 })();
 
-document.getElementById("refreshRoomList").onclick = () => {
-    socket.emit("getRoomList");
-};
+const refreshBtn = document.getElementById("refreshRoomList");
+if (refreshBtn) {
+    refreshBtn.onclick = () => {
+        socket.emit("getRoomList");
+    };
+}
 
 socket.on("roomList", (list) => {
     const container = document.getElementById("roomListContainer");
