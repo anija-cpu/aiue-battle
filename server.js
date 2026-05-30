@@ -22,6 +22,7 @@ io.on("connection", (socket) => {
             rooms[roomId] = {
                 players: [],
                 playerNames: {},
+                playerChars: {},
                 answers: {},
                 hits: {},
                 wordLengths: {},   // 各プレイヤーの有効文字数
@@ -171,6 +172,7 @@ io.on("connection", (socket) => {
                     scores: { ...room.scores },
                     timerDuration: room.timerDuration,
                     targetScore: room.targetScore,
+                    playerChars: room.playerChars,
                 });
             });
 
@@ -300,6 +302,13 @@ io.on("connection", (socket) => {
             // 次のターンのタイマー開始
             startTurnTimer(room, socket.roomId);
         }
+    });
+
+    socket.on("selectChar", (charId) => {
+    const room = rooms[socket.roomId];
+    if (!room) return;
+    room.playerChars[socket.id] = charId;
+    io.to(socket.roomId).emit("charUpdate", { playerChars: room.playerChars });
     });
 
     // =====================

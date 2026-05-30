@@ -145,12 +145,17 @@ document.addEventListener('click', e => {
     }
 });
 
+socket.on("charUpdate", (data) => {
+    playerChars = data.playerChars;
+});
+
 // =====================
 // 画面切り替え
 // =====================
 function showScreen(id) {
     ["screenRoom","screenWait","screenTheme","screenInput","screenBattle","screenWatch"].forEach(s => {
         document.getElementById(s).hidden = (s !== id);
+        buildCharSelect();
     });
 }
 
@@ -203,6 +208,35 @@ const kanaList = [
     "ー","れ","","め","へ","ね","て","せ","け","え",
     "","ろ","よ","も","ほ","の","と","そ","こ","お",
 ];
+
+// キャラ選択
+let myChar = 1; // デフォルトはchar1
+let playerChars = {};
+
+function buildCharSelect() {
+    const grid = document.getElementById("charGrid");
+    if (!grid) return;
+    grid.innerHTML = "";
+    for (let i = 1; i <= 8; i++) {
+        const img = document.createElement("img");
+        img.src = `/char${i}.png`;
+        img.style.cssText = `
+            width: 72px; height: 72px; object-fit: contain;
+            border: 3px solid transparent; border-radius: 10px;
+            cursor: pointer; background: rgba(255,255,255,0.5);
+            transition: border 0.15s;
+        `;
+        img.onclick = () => {
+            myChar = i;
+            grid.querySelectorAll("img").forEach(el => el.style.borderColor = "transparent");
+            img.style.borderColor = "#c8813a";
+            socket.emit("selectChar", i);
+        };
+        if (i === 1) img.style.borderColor = "#c8813a"; // デフォルト選択
+        grid.appendChild(img);
+    }
+    socket.emit("selectChar", myChar); // 入室時にデフォルト送信
+}
 
 function buildKeyboard(container, mode) {
     kanaList.forEach(kana => {
@@ -290,9 +324,18 @@ function buildAllPlayerCards(playersArr, playerNamesObj, opponentLengths, myId) 
 
         const label = document.createElement("p");
         label.id = "playerLabel-" + id;
-        label.textContent = id === myId
-            ? `自分：${playerNamesObj[id]}`
-            : `${playerNamesObj[id]}`;
+        
+        const charId = playerChars[id] || 1;
+        const charImg = document.createElement("img");
+        charImg.src = `/char${charId}.png`;
+        charImg.style.cssText = `
+            width:32px; height:32px; object-fit:contain;
+            vertical-align:middle; margin-right:6px;
+        `;
+        label.appendChild(charImg);
+        label.appendChild(document.createTextNode(
+            id === myId ? `自分：${playerNamesObj[id]}` : `${playerNamesObj[id]}`
+        ));
         wrapper.appendChild(label);
 
         const cardsDiv = document.createElement("div");
@@ -324,19 +367,29 @@ function updateTurnPanel(currentTurnId, order, names, eliminatedList) {
 
     orderEl.innerHTML = "";
     (order || []).forEach(id => {
-        const span = document.createElement("span");
-        const wc = winCounts[id] || 0;
-        const pt = scores[id] || 0;
-        const ptText = targetScore > 0 ? `${pt}/${targetScore}pt` : `${pt}pt`;
-        span.textContent = (names[id] || id) + ` ${wc}勝 ${ptText}`;
-        span.className = "turn-order-name";
-        if ((eliminatedList || []).includes(id)) {
-            span.classList.add("turn-order-eliminated");
-        } else if (id === currentTurnId) {
-            span.classList.add("turn-order-active");
-        }
-        orderEl.appendChild(span);
-    });
+    const span = document.createElement("span");
+    const wc = winCounts[id] || 0;
+    const pt = scores[id] || 0;
+    const ptText = targetScore > 0 ? `${pt}/${targetScore}pt` : `${pt}pt`;
+
+    const charId = playerChars[id] || 1;
+    const charImg = document.createElement("img");
+    charImg.src = `/char${charId}.png`;
+    charImg.style.cssText = `
+        width:24px; height:24px; object-fit:contain;
+        vertical-align:middle; margin-right:4px;
+    `;
+    span.appendChild(charImg);
+    span.appendChild(document.createTextNode((names[id] || id) + ` ${wc}勝 ${ptText}`));
+
+    span.className = "turn-order-name";
+    if ((eliminatedList || []).includes(id)) {
+        span.classList.add("turn-order-eliminated");
+    } else if (id === currentTurnId) {
+        span.classList.add("turn-order-active");
+    }
+    orderEl.appendChild(span);
+});
 
     panel.hidden = false;
 }
@@ -406,6 +459,7 @@ joinRoomBtn.onclick = () => {
 socket.on("roomCreated", (roomId) => {
     myRoomId = roomId;
     AudioManager.playBGM('lobby');
+    buildCharSelect();
 
     // 部屋ID表示 + コピーボタン
     waitRoomId.innerHTML = "";
@@ -480,6 +534,7 @@ socket.on("joinedRoom", (roomId) => {
     showScreen("screenWait");
     document.getElementById("startGameBtn").hidden = true;
     document.getElementById("startInfo").textContent = "部屋主がゲームを開始するのを待っています...";
+    buildCharSelect();
 });
 
 // =====================
@@ -550,6 +605,7 @@ socket.on("gameStart", (data) => {
     buildAllPlayerCards(data.players, data.playerNames, data.opponentLengths, socket.id);
     showScreen("screenBattle");
     myTurn = data.firstTurn === socket.id;
+    playerChars = data.playerChars || {};
 
     // 勝利数初期化
     data.players.forEach(id => {
