@@ -15,48 +15,17 @@
     <div id="turnPanelOrder"></div>
 </div>
 
-<!-- ⓪タイトル画面 -->
-<div id="screenTitle" style="padding: 0; background: none; box-shadow: none;">
-    <img src="/title-screen.png" style="
-        width: 100%; max-width: 760px;
-        border-radius: 12px;
-        display: block;
-        margin: 0 auto;
-    ">
-    <button id="startBtn" style="
-        font-size: 22px;
-        padding: 14px 60px;
-        border-radius: 30px;
-        background: linear-gradient(180deg, #ffe066, #ffb700);
-        color: #5a2d00;
-        box-shadow: 0 6px 0 #c87800;
-        font-weight: bold;
-        letter-spacing: 0.1em;
-        margin-top: 20px;
-    ">スタート</button>
-</div>
-
 <!-- ①ルーム画面 -->
 <div id="screenRoom">
     <h1>あいうえバトル</h1>
     <input id="nameInput" placeholder="プレイヤー名">
     <button id="createRoom">部屋を作る</button>
     <hr>
-    <div style="margin:12px 0;">
     <input id="nameInput2" placeholder="プレイヤー名">
-    <button id="refreshRoomList">🔄 ルーム一覧を更新</button>
-</div>
-<div id="roomListContainer" style="
-    max-height: 200px; overflow-y: auto;
-    border: 2px solid #a0c8ff; border-radius: 12px;
-    margin: 8px 0; display: none;
-"></div>
-<div style="margin:8px 0;">
-    <input id="roomInput" placeholder="部屋ID（直接入力も可）">
+    <input id="roomInput" placeholder="部屋ID">
     <button id="joinRoom">参加</button>
     <button id="watchRoom">観戦</button>
-</div>
-<p id="roomInfo"></p>
+    <p id="roomInfo"></p>
     <hr>
     <div id="gameDescription">
         <h2>あいうえバトルとは</h2>
@@ -86,10 +55,6 @@
     <h2>待機中...</h2>
     <p id="waitRoomId"></p>
     <div id="playerList"></div>
-    <div id="charSelect" style="margin:16px 0;">
-    <p style="font-weight:bold; color:#5a2d00; margin-bottom:8px;">キャラクターを選んでください</p>
-    <div id="charGrid" style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center;"></div>
-</div>
     <button id="startGameBtn" hidden>ゲーム開始</button>
     <p id="startInfo"></p>
     <hr>
@@ -113,7 +78,7 @@
 
 <!-- ③単語入力画面 -->
 <div id="screenInput" hidden>
-    <p id="inputScoreDisplay" style="font-size:14px; color:#6b3a10; margin:4px 0;"></p>
+    <p id="scoreInput">0勝 0敗</p>
     <p id="themeDisplay"></p>
     <h2>単語を入力してください</h2>
     <div class="cards">
