@@ -29,6 +29,18 @@ body {
     box-shadow: 0 6px 32px rgba(0,0,0,0.25), 0 0 0 3px rgba(100,180,255,0.4);
 }
 
+/* タイトル画面は共通パネルスタイルを除外 */
+#screenTitle {
+    all: unset;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 1000 !important;
+    display: flex !important;
+}
+
 h1 { 
     font-size: 2.8rem; 
     color: #ff6b9d; 
@@ -448,4 +460,9 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
     font-weight: bold;
     color: #5a2d00;
     margin: 0 0 6px;
+}
+
+@keyframes titleBtnPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
 }
