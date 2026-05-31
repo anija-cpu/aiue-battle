@@ -31,14 +31,18 @@ body {
 
 /* タイトル画面は共通パネルスタイルを除外 */
 #screenTitle {
-    all: unset;
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     width: 100vw !important;
     height: 100vh !important;
     z-index: 1000 !important;
-    display: flex !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #0a1a3a !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    overflow: hidden !important;
 }
 
 h1 { 
