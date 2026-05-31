@@ -24,64 +24,40 @@
     width: 100vw;
     height: 100vh;
     padding: 0;
-    background: none;
+    background: #0a1a3a;
     box-shadow: none;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
+    padding-bottom: 3%;
     overflow: hidden;
     z-index: 1000;
+    box-sizing: border-box;
 ">
-    <div style="
-        position: relative;
+    <img src="/title-screen.png" style="
+        position: absolute;
+        top: 0; left: 0;
         width: 100%;
         height: 100%;
+        object-fit: contain;
+        display: block;
     ">
-        <!-- title-screen.png を背景として表示 -->
-        <img src="/title-screen.png" style="
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            display: block;
-            background: #0a1a3a;
-        ">
-        <!-- スタートボタン -->
-        <div style="
-            position: relative;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            padding-bottom: 3%;
-            box-sizing: border-box;
-        ">
-            <img src="/title-screen.png" style="
-                position: absolute;
-                top: 0; left: 0;
-                width: 100%;
-                height: 100%;
-                object-fit: contain;
-                display: block;
-            ">
-            <button id="startBtn" style="
-                position: relative;
-                z-index: 10;
-                font-size: clamp(16px, 2.5vw, 28px);
-                padding: clamp(10px, 1.5vw, 16px) clamp(40px, 8vw, 100px);
-                border-radius: 50px;
-                background: linear-gradient(180deg, #ffe566 0%, #ffb700 50%, #ff9500 100%);
-                color: #5a2d00;
-                box-shadow: 0 5px 0 #c87800, 0 8px 20px rgba(255,150,0,0.6);
-                font-weight: 900;
-                letter-spacing: 0.15em;
-                border: 3px solid rgba(255,255,255,0.7);
-                white-space: nowrap;
-                animation: titleBtnPulse 2s ease-in-out infinite;
-                cursor: pointer;
-            ">▶ スタート</button>
-        </div>
-    </div>
+    <button id="startBtn" style="
+        position: relative;
+        z-index: 10;
+        font-size: clamp(16px, 2.5vw, 28px);
+        padding: clamp(10px, 1.5vw, 16px) clamp(40px, 8vw, 100px);
+        border-radius: 50px;
+        background: linear-gradient(180deg, #ffe566 0%, #ffb700 50%, #ff9500 100%);
+        color: #5a2d00;
+        box-shadow: 0 5px 0 #c87800, 0 8px 20px rgba(255,150,0,0.6);
+        font-weight: 900;
+        letter-spacing: 0.15em;
+        border: 3px solid rgba(255,255,255,0.7);
+        white-space: nowrap;
+        animation: titleBtnPulse 2s ease-in-out infinite;
+        cursor: pointer;
+    ">▶ スタート</button>
 </div>
 
 <!-- ①ルーム画面 -->
