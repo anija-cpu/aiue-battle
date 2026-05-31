@@ -24,12 +24,13 @@
     width: 100vw;
     height: 100vh;
     padding: 0;
+    margin: 0;
     background: #0a1a3a;
     box-shadow: none;
     display: flex;
-    align-items: flex-end;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
-    padding-bottom: 3%;
     overflow: hidden;
     z-index: 1000;
     box-sizing: border-box;
@@ -43,7 +44,10 @@
         display: block;
     ">
     <button id="startBtn" style="
-        position: relative;
+        position: absolute;
+        bottom: 5%;
+        left: 50%;
+        transform: translateX(-50%);
         z-index: 10;
         font-size: clamp(16px, 2.5vw, 28px);
         padding: clamp(10px, 1.5vw, 16px) clamp(40px, 8vw, 100px);
