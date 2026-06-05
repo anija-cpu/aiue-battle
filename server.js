@@ -249,19 +249,19 @@ io.on("connection", (socket) => {
         const nextTurn = room.turnOrder[room.currentTurnIndex];
 
         socket.emit("attackResult", {
-            kana, hitAny, hitSelf, hitSelfIndexes, hitResults,
-            turnChanged, nextTurn, newlyEliminated,
-            eliminatedNames: newlyEliminated.map(id => room.playerNames[id])
-        });
+    kana, hitAny, hitSelf, hitSelfIndexes, hitResults,
+    turnChanged, nextTurn, newlyEliminated,
+    eliminatedNames: newlyEliminated.map(eid => room.playerNames[eid])
+});
 
-        room.players.forEach(id => {
-            if (id === attacker) return;
-            io.to(id).emit("attacked", {
-                kana, attacker, hitAny, hitSelf, hitSelfIndexes, hitResults,
-                turnChanged, nextTurn, newlyEliminated,
-                eliminatedNames: newlyEliminated.map(id => room.playerNames[id])
-            });
-        });
+room.players.forEach(id => {
+    if (id === attacker) return;
+    io.to(id).emit("attacked", {
+        kana, attacker, hitAny, hitSelf, hitSelfIndexes, hitResults,
+        turnChanged, nextTurn, newlyEliminated,
+        eliminatedNames: newlyEliminated.map(eid => room.playerNames[eid])
+    });
+});
 
         sendToSpectators(socket.roomId, room, "spectatorAttack", {
             kana, attacker, players: room.players,
