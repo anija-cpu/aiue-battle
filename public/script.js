@@ -1161,4 +1161,40 @@ document.getElementById("startBtn").onclick = () => {
 };
 
 // タイトル画面から開始
+function positionStartBtn() {
+    const img = document.getElementById("titleImg");
+    const btn = document.getElementById("startBtn");
+    if (!img || !btn) return;
+
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const imgRatio = 16 / 9; // 画像の縦横比
+    const screenRatio = vw / vh;
+
+    let imgW, imgH, imgX, imgY;
+    if (screenRatio > imgRatio) {
+        // 上下に黒帯
+        imgH = vh;
+        imgW = vh * imgRatio;
+        imgX = (vw - imgW) / 2;
+        imgY = 0;
+    } else {
+        // 左右に黒帯
+        imgW = vw;
+        imgH = vw / imgRatio;
+        imgX = 0;
+        imgY = (vh - imgH) / 2;
+    }
+
+    // キーボード下端の位置（画像内の比率で指定）
+    // キーボード下端 ≒ 画像高さの78%あたり
+    const btnY = imgY + imgH * 0.78;
+    const btnX = imgX + imgW * 0.5;
+
+    btn.style.top = btnY + "px";
+    btn.style.left = btnX + "px";
+}
+
+window.addEventListener("resize", positionStartBtn);
+positionStartBtn();
 showScreen("screenTitle");
