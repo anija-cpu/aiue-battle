@@ -1188,7 +1188,7 @@ function positionStartBtn() {
 
     // キーボード下端の位置（画像内の比率で指定）
     // キーボード下端 ≒ 画像高さの78%あたり
-    const btnY = imgY + imgH * 0.78;
+    const btnY = imgY + imgH * 0.83;
     const btnX = imgX + imgW * 0.5;
 
     btn.style.top = btnY + "px";
