@@ -1357,7 +1357,26 @@ socket.on('teamUpdated', (data) => {
 
 // チームゲーム開始ボタン（部屋主のみ）
 document.getElementById('teamSelectDone').onclick = () => {
-    socket.emit('startGame');
+    // クライアント側バリデーション
+    const activeTeams = ['A','B','C','D'].filter(t => {
+        const card = document.querySelector(`.teamCard[data-team="${t}"]`);
+        return card && card.style.display !== 'none';
+    });
+
+    for (const t of activeTeams) {
+        const leader = document.getElementById('leaderName-' + t).textContent;
+        const members = document.getElementById('teamList-' + t).textContent;
+        if (!leader) {
+            alert(`チーム${t}にリーダーがいません`);
+            return;
+        }
+        if (!members.trim()) {
+            alert(`チーム${t}にメンバーがいません`);
+            return;
+        }
+    }
+
+    socket.emit('startTeamGame');
 };
 
 // リーダー用キーボード生成
