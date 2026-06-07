@@ -1748,6 +1748,12 @@ socket.on('teamBattleReady', (data) => {
         area.appendChild(card);
     });
 
+    const firstTeam = data.activeTeams[0];
+    const firstMember = data.teams[firstTeam].find(id => data.teamLeaders[firstTeam] !== id);
+    updateTeamTurnDisplay(firstTeam, firstMember, data.playerNames);
+
+    showScreen('screenTeamBattle');
+
     showScreen('screenTeamBattle');
 
     if (myRole === 'member') {
