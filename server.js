@@ -569,7 +569,7 @@ room.players.forEach(id => {
 
             // 全プレイヤーにゲーム開始通知
             room.players.forEach(id => {
-                io.to(id).emit("teamGameStart", {
+                io.to(id).emit("teamBattleReady", {
                     teams: room.teams,
                     teamLeaders: room.teamLeaders,
                     playerNames: room.playerNames,
@@ -579,7 +579,7 @@ room.players.forEach(id => {
                     teamScores: room.teamScores,
                     targetScore: room.targetScore,
                     timerDuration: room.timerDuration,
-                    myTeam: socket.team,
+                    myTeam: s ? s.team : null,
                 });
             });
         } else {
