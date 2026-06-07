@@ -19,6 +19,12 @@
 <div id="teamPlayerPanel" hidden>
     <div style="font-size:14px; font-weight:bold; color:#c0392b; margin-bottom:8px; border-bottom:1px solid #a0c8ff; padding-bottom:6px;">👥 参加者一覧</div>
     <div id="playerAssignList"></div>
+
+    <!-- チームスコアパネル（左上固定） -->
+<div id="teamScorePanel" hidden>
+    <div style="font-size:14px; font-weight:bold; color:#c0392b; margin-bottom:8px; border-bottom:1px solid #a0c8ff; padding-bottom:6px;">🏆 チームスコア</div>
+    <div id="teamScoreList"></div>
+</div>
 </div>
 
 
@@ -210,6 +216,12 @@
     <div id="teamBattleArea" style="display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin:12px 0;"></div>
     <div id="teamResult" style="margin-top:16px; font-size:22px; font-weight:bold;"></div>
     <button id="teamRematchBtn" hidden>再戦</button>
+
+    <!-- 最新ヒント表示 -->
+<div id="latestHint" style="display:none; margin-top:12px; padding:8px 16px; background:rgba(255,240,200,0.9); border-radius:10px; border:2px solid #c8965a; font-size:22px; text-align:center;">
+    <span style="font-size:13px; color:#5a2d00; display:block; margin-bottom:4px;">👑 リーダーからのヒント</span>
+    <span id="latestHintEmoji"></span>
+</div>
 
     <!-- メンバー用キーボード -->
     <div id="keyboardAreaTeam" style="display:none; margin-top:24px; padding:16px; background:rgba(200,220,255,0.5); border-radius:12px; justify-content:center;">

@@ -1639,6 +1639,17 @@ socket.on('hintReceived', (data) => {
     line.style.cssText = `margin:4px 0; padding:6px 10px; border-radius:8px; background:${TEAM_COLORS[data.team]}22; border-left:3px solid ${TEAM_COLORS[data.team]};`;
     line.innerHTML = `<span style="font-weight:bold;">${TEAM_LABELS[data.team]} 👑${data.leaderName}:</span> <span style="font-size:24px;">${data.emojis.join('')}</span>`;
     log.prepend(line);
+
+    // 最新ヒントを大きく表示（自チームのみ）
+    if (data.team === myTeam && myRole === 'member') {
+        const latestHint = document.getElementById('latestHint');
+        const latestHintEmoji = document.getElementById('latestHintEmoji');
+        if (latestHint && latestHintEmoji) {
+            latestHintEmoji.textContent = data.emojis.join('');
+            latestHint.style.display = 'block';
+        }
+    }
+            
 });
 
 // チームゲーム終了
@@ -1694,6 +1705,7 @@ document.getElementById('teamRematchBtn').onclick = () => {
 };
 
 socket.on('teamBattleReady', (data) => {
+    updateTeamScorePanel(data.teamScores, data.targetScore);
     myTeam = data.myTeam || myTeam;
 
         if (data.teamLeaders[myTeam] === socket.id) {
@@ -1753,8 +1765,8 @@ socket.on('teamBattleReady', (data) => {
     updateTeamTurnDisplay(firstTeam, firstMember, data.playerNames);
 
     showScreen('screenTeamBattle');
-
-    showScreen('screenTeamBattle');
+    const teamScorePanel = document.getElementById('teamScorePanel');
+if (teamScorePanel) teamScorePanel.hidden = (id !== 'screenTeamBattle');
 
     if (myRole === 'member') {
         document.getElementById('keyboardAreaTeam').style.display = 'flex';
@@ -1775,3 +1787,17 @@ socket.on('teamBattleReady', (data) => {
     showScreen('screenTeamBattle');
 
 showScreen("screenTitle");
+
+function updateTeamScorePanel(teamScores, targetScore) {
+    const panel = document.getElementById('teamScorePanel');
+    const list = document.getElementById('teamScoreList');
+    if (!panel || !list) return;
+    panel.hidden = false;
+    list.innerHTML = ['A','B','C','D']
+        .filter(t => teamScores[t] !== undefined)
+        .map(t => {
+            const pt = teamScores[t] || 0;
+            const ptText = targetScore > 0 ? `${pt}/${targetScore}pt` : `${pt}pt`;
+            return `<div style="color:${TEAM_COLORS[t]}; font-weight:bold;">${TEAM_LABELS[t]}：${ptText}</div>`;
+        }).join('');
+}
