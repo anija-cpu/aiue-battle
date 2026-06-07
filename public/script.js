@@ -1507,7 +1507,6 @@ socket.on('teamGameStart', (data) => {
         showScreen('screenLeaderInput');
     } else {
         showScreen('screenTeamBattle');
-        document.getElementById('teamResult').textContent = 'リーダーが単語を設定中...';
         document.getElementById('keyboardAreaTeam').style.display = 'none';
         document.getElementById('emojiPalette').style.display = 'none';
     }
