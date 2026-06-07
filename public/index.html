@@ -15,6 +15,12 @@
     <div id="turnPanelOrder"></div>
 </div>
 
+<!-- チーム選択画面：参加者一覧（左上固定） -->
+<div id="teamPlayerPanel" hidden>
+    <div style="font-size:14px; font-weight:bold; color:#c0392b; margin-bottom:8px; border-bottom:1px solid #a0c8ff; padding-bottom:6px;">👥 参加者一覧</div>
+    <div id="playerAssignList"></div>
+</div>
+
 
 <!-- ⓪タイトル画面 -->
 <div id="screenTitle" style="
@@ -126,12 +132,6 @@
 <!-- ②-1 チーム選択画面 -->
 <div id="screenTeamSelect" hidden>
     <h2>チームと役割を選んでください</h2>
-
-    <!-- 参加者一覧 -->
-    <div style="margin: 12px auto; max-width: 500px; background: rgba(255,248,235,0.8); border-radius: 12px; padding: 12px 16px;">
-        <p style="font-weight:bold; color:#5a2d00; margin-bottom:8px;">👥 参加者一覧</p>
-        <div id="playerAssignList"></div>
-    </div>
 
     <!-- チーム追加ボタン（ホストのみ表示） -->
     <div id="teamAddArea" hidden style="margin: 8px 0;">

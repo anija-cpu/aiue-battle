@@ -153,6 +153,10 @@ function showScreen(id) {
         }
     });
     if (id === "screenWait") buildCharSelect();
+
+    // チーム選択画面のときだけ参加者パネルを表示
+    const teamPanel = document.getElementById('teamPlayerPanel');
+    if (teamPanel) teamPanel.hidden = (id !== 'screenTeamSelect');
 }
 
 // =====================
