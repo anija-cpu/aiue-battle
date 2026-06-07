@@ -1689,4 +1689,35 @@ document.getElementById('teamRematchBtn').onclick = () => {
     document.getElementById('teamRematchBtn').hidden = true;
 };
 
+socket.on('teamBattleReady', (data) => {
+    myTeam = data.myTeam || myTeam;
+
+    // チームバトルエリアのカードを正しい長さで再構築
+    data.activeTeams.forEach(team => {
+        const cardsDiv = document.getElementById('teamCards-' + team);
+        if (!cardsDiv) return;
+        cardsDiv.innerHTML = '';
+        const len = data.teamAnswerLengths[team] || 7;
+        for (let i = 0; i < len; i++) {
+            const c = document.createElement('div');
+            c.classList.add('card');
+            c.textContent = '？';
+            c.id = `tcard-${team}-${i}`;
+            cardsDiv.appendChild(c);
+        }
+    });
+
+    showScreen('screenTeamBattle');
+
+    if (myRole === 'member') {
+        document.getElementById('keyboardAreaTeam').style.display = 'flex';
+        document.getElementById('emojiPalette').style.display = 'none';
+        buildTeamKeyboard();
+    } else if (myRole === 'leader') {
+        document.getElementById('keyboardAreaTeam').style.display = 'none';
+        document.getElementById('emojiPalette').style.display = 'block';
+        buildEmojiPalette();
+    }
+});
+
 showScreen("screenTitle");
