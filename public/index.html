@@ -107,6 +107,12 @@
         <p style="font-weight:bold; color:#5a2d00; margin-bottom:8px;">キャラクター選択</p>
         <div id="charGrid" style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;"></div>
     </div>
+    <!-- モード選択（部屋主のみ表示） -->
+     <div id="modeSelect" hidden>
+        <p style="font-weight:bold; color:#5a2d00; margin-bottom:8px;">ゲームモード選択</p>
+        <button id="modeBattleRoyale" class="modeBtn active">⚔️ バトルロイヤル</button>
+        <button id="modeTeamDeathmatch" class="modeBtn">🏴 チームデスマッチ</button>
+    </div>
     <button id="startGameBtn" hidden>ゲーム開始</button>
     <p id="startInfo"></p>
     <hr>
@@ -115,6 +121,85 @@
         <p>相手の隠された単語を当てる対戦ゲームです。</p>
         <p>お互いに2〜7文字の単語を秘密で入力し、50音キーボードを使って相手の文字を攻撃します。文字がヒットすると開き、ヒットした時は連続攻撃できます。ミスや自爆するとターンが相手に移ります。最後まで単語が残ったプレイヤーの勝利！</p>
     </div>
+</div>
+
+<!-- ②-1 チーム選択画面 -->
+<div id="screenTeamSelect" hidden>
+    <h2>チームと役割を選んでください</h2>
+    <div id="teamSelectGrid" style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin:16px 0;">
+        <!-- A/B/C/D チーム -->
+        <div class="teamCard" data-team="A" style="border-color:#e74c3c;">
+            <div class="teamLabel" style="background:#e74c3c;">🔴 チームA</div>
+            <button class="teamJoinLeader" data-team="A">👑 リーダー</button>
+            <button class="teamJoinMember" data-team="A">⚔️ メンバー</button>
+            <div class="teamMemberList" id="teamList-A"></div>
+        </div>
+        <div class="teamCard" data-team="B" style="border-color:#3498db;">
+            <div class="teamLabel" style="background:#3498db;">🔵 チームB</div>
+            <button class="teamJoinLeader" data-team="B">👑 リーダー</button>
+            <button class="teamJoinMember" data-team="B">⚔️ メンバー</button>
+            <div class="teamMemberList" id="teamList-B"></div>
+        </div>
+        <div class="teamCard" data-team="C" style="border-color:#2ecc71;">
+            <div class="teamLabel" style="background:#2ecc71;">🟢 チームC</div>
+            <button class="teamJoinLeader" data-team="C">👑 リーダー</button>
+            <button class="teamJoinMember" data-team="C">⚔️ メンバー</button>
+            <div class="teamMemberList" id="teamList-C"></div>
+        </div>
+        <div class="teamCard" data-team="D" style="border-color:#f39c12;">
+            <div class="teamLabel" style="background:#f39c12;">🟡 チームD</div>
+            <button class="teamJoinLeader" data-team="D">👑 リーダー</button>
+            <button class="teamJoinMember" data-team="D">⚔️ メンバー</button>
+            <div class="teamMemberList" id="teamList-D"></div>
+        </div>
+    </div>
+    <p id="teamSelectInfo" style="color:#888;"></p>
+    <button id="teamSelectDone" hidden>ゲーム開始</button>
+</div>
+
+<!-- ②-2 リーダー：単語入力画面 -->
+<div id="screenLeaderInput" hidden>
+    <h2>👑 お題の単語を入力してください</h2>
+    <p style="color:#888; font-size:13px;">メンバーには見えません</p>
+    <div class="cards">
+        <input class="leaderCard card" maxlength="1">
+        <input class="leaderCard card" maxlength="1">
+        <input class="leaderCard card" maxlength="1">
+        <input class="leaderCard card" maxlength="1">
+        <input class="leaderCard card" maxlength="1">
+        <input class="leaderCard card" maxlength="1">
+        <input class="leaderCard card" maxlength="1">
+    </div>
+    <button id="leaderAnswerBtn">決定</button>
+    <div id="keyboardAreaLeader" style="display:flex; justify-content:center; gap:10px; margin-top:24px; padding:16px; background:rgba(200,220,255,0.5); border-radius:12px;">
+        <div id="specialKeyboardLeader"></div>
+        <div id="keyboardLeader" style="display:grid; grid-template-columns:repeat(10,48px); gap:5px;"></div>
+    </div>
+</div>
+
+<!-- ③ チームバトル画面 -->
+<div id="screenTeamBattle" hidden>
+    <h2 id="teamBattleTitle">チームバトル中！</h2>
+    <div id="teamBattleArea" style="display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin:12px 0;"></div>
+    <div id="teamResult" style="margin-top:16px; font-size:22px; font-weight:bold;"></div>
+    <button id="teamRematchBtn" hidden>再戦</button>
+
+    <!-- メンバー用キーボード -->
+    <div id="keyboardAreaTeam" style="display:none; margin-top:24px; padding:16px; background:rgba(200,220,255,0.5); border-radius:12px; justify-content:center;">
+        <div id="keyboardTeam" style="display:grid; grid-template-columns:repeat(10,48px); gap:5px;"></div>
+    </div>
+
+    <!-- リーダー用絵文字パレット -->
+    <div id="emojiPalette" style="display:none; margin-top:16px; padding:16px; background:rgba(255,240,200,0.8); border-radius:12px;">
+        <p style="font-weight:bold; color:#5a2d00; margin-bottom:8px;">💬 ヒントを送る（最大3個）</p>
+        <div id="emojiSelected" style="min-height:40px; font-size:28px; margin-bottom:8px; padding:6px 12px; background:#fff; border-radius:8px; border:2px solid #c8965a;"></div>
+        <div id="emojiCategories" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px;"></div>
+        <button id="emojiSendBtn" disabled>送信</button>
+        <button id="emojiClearBtn">クリア</button>
+    </div>
+
+    <!-- ヒント表示ログ -->
+    <div id="hintLog" style="margin-top:12px; font-size:14px; text-align:left; max-width:400px; margin-left:auto; margin-right:auto;"></div>
 </div>
 
 <!-- ②-2 お題選択画面 -->
