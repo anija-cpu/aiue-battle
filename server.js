@@ -680,7 +680,7 @@ room.players.forEach(id => {
         const myTeam = socket.team;
         if (!myTeam) return;
         if (room.teamLeaders[myTeam] !== socket.id) return;
-        if (!Array.isArray(emojis) || emojis.length === 0 || emojis.length > 3) return;
+        if (!Array.isArray(emojis) || emojis.length === 0 || emojis.length > 1) return;
 
         io.to(socket.roomId).emit("hintReceived", {
             team: myTeam,

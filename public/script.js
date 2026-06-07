@@ -1554,7 +1554,7 @@ function buildEmojiPalette() {
                     selectedEmojis = selectedEmojis.filter(e => e !== emoji);
                     btn.classList.remove('selected');
                 } else {
-                    if (selectedEmojis.length >= 3) return;
+                    if (selectedEmojis.length >= 1) return;
                     selectedEmojis.push(emoji);
                     btn.classList.add('selected');
                 }
