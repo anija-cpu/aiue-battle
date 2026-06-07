@@ -135,8 +135,10 @@ socket.on("charUpdate", (data) => {
 // 画面切り替え（screenTitleを含む）
 // =====================
 function showScreen(id) {
-    ["screenTitle","screenRoom","screenWait","screenTheme","screenInput","screenBattle","screenWatch"].forEach(s => {
+    ["screenTitle","screenRoom","screenWait","screenTeamSelect","screenTheme",
+     "screenLeaderInput","screenInput","screenBattle","screenTeamBattle","screenWatch"].forEach(s => {
         const el = document.getElementById(s);
+        if (!el) return;
         el.hidden = (s !== id);
         if (s === "screenTitle") {
             el.style.display = (s === id) ? "flex" : "none";
@@ -499,6 +501,8 @@ socket.on("roomCreated", (roomId) => {
     document.getElementById('targetScoreSelect').onchange = (e) => {
         socket.emit('setTargetScore', parseInt(e.target.value));
     };
+
+    document.getElementById('modeSelect').hidden = false;
 
     showScreen("screenWait");
     document.getElementById("startGameBtn").hidden = false;
@@ -1193,4 +1197,349 @@ function positionStartBtn() {
 
 window.addEventListener("resize", positionStartBtn);
 positionStartBtn();
+
+// =====================
+// チームモード関連
+// =====================
+
+const TEAM_COLORS = { A: '#e74c3c', B: '#3498db', C: '#2ecc71', D: '#f39c12' };
+const TEAM_LABELS = { A: '🔴 チームA', B: '🔵 チームB', C: '🟢 チームC', D: '🟡 チームD' };
+
+let currentMode = 'battle-royale';
+let myTeam = null;
+let myRole = null; // 'leader' or 'member'
+let leaderCardIndex = 0;
+let leaderAnswer = [];
+let leaderAnswered = false;
+let selectedEmojis = [];
+let teamUsedKana = [];
+
+// 絵文字パレットデータ
+const emojiCategories = [
+    { label: '表情', emojis: ['😀','😭','😡','🤔','😎','😱','🥰','😴','🤣','😏'] },
+    { label: '動物', emojis: ['🐶','🐱','🦁','🐘','🐧','🐸','🦊','🐼','🐯','🦄'] },
+    { label: '食べ物', emojis: ['🍎','🍕','🍣','🍰','🍔','🍜','🍦','🍇','🥕','🍙'] },
+    { label: '物', emojis: ['🎮','📱','🚗','🏠','💎','⚽','🎸','✈️','🚀','👑'] },
+    { label: '自然', emojis: ['🌞','🌙','⭐','🔥','⚡','🌊','🌸','🍀','❄️','🌈'] },
+    { label: '記号', emojis: ['❤️','💔','💯','❗','❓','⬆️','⬇️','✅','❌','🔍'] },
+];
+
+// モードボタン
+document.getElementById('modeBattleRoyale').onclick = () => {
+    currentMode = 'battle-royale';
+    socket.emit('setMode', 'battle-royale');
+    document.getElementById('modeBattleRoyale').classList.add('active');
+    document.getElementById('modeTeamDeathmatch').classList.remove('active');
+};
+
+document.getElementById('modeTeamDeathmatch').onclick = () => {
+    currentMode = 'team-deathmatch';
+    socket.emit('setMode', 'team-deathmatch');
+    document.getElementById('modeTeamDeathmatch').classList.add('active');
+    document.getElementById('modeBattleRoyale').classList.remove('active');
+};
+
+socket.on('modeUpdated', (data) => {
+    currentMode = data.mode;
+});
+
+// チーム選択ボタン
+document.querySelectorAll('.teamJoinLeader').forEach(btn => {
+    btn.onclick = () => {
+        const team = btn.dataset.team;
+        myTeam = team;
+        myRole = 'leader';
+        socket.emit('selectTeam', { team, role: 'leader' });
+    };
+});
+
+document.querySelectorAll('.teamJoinMember').forEach(btn => {
+    btn.onclick = () => {
+        const team = btn.dataset.team;
+        myTeam = team;
+        myRole = 'member';
+        socket.emit('selectTeam', { team, role: 'member' });
+    };
+});
+
+socket.on('teamUpdated', (data) => {
+    ['A','B','C','D'].forEach(team => {
+        const listEl = document.getElementById('teamList-' + team);
+        if (!listEl) return;
+        const members = data.teams[team] || [];
+        listEl.innerHTML = members.map(id => {
+            const isLeader = data.teamLeaders[team] === id;
+            return `<div>${isLeader ? '👑' : '⚔️'} ${data.playerNames[id]}</div>`;
+        }).join('');
+    });
+});
+
+// チームゲーム開始ボタン（部屋主のみ）
+document.getElementById('teamSelectDone').onclick = () => {
+    socket.emit('startGame');
+};
+
+// リーダー用キーボード生成
+const keyboardLeader = document.getElementById('keyboardLeader');
+const specialKeyboardLeader = document.getElementById('specialKeyboardLeader');
+const leaderInputs = document.querySelectorAll('.leaderCard');
+
+function updateLeaderSelection() {
+    leaderInputs.forEach(i => i.classList.remove('selected'));
+    if (leaderInputs[leaderCardIndex]) leaderInputs[leaderCardIndex].classList.add('selected');
+}
+
+function inputLeaderKana(kana) {
+    if (kana === 'DEL') {
+        if (leaderAnswered) return;
+        leaderInputs[leaderCardIndex].value = '';
+        if (leaderCardIndex > 0) leaderCardIndex--;
+        updateLeaderSelection();
+        return;
+    }
+    if (leaderAnswered) return;
+    leaderInputs[leaderCardIndex].value = kana;
+    if (leaderCardIndex < leaderInputs.length - 1) leaderCardIndex++;
+    updateLeaderSelection();
+}
+
+buildKeyboard(keyboardLeader, 'input');
+buildSpecialKeyboard(specialKeyboardLeader, 'input');
+// リーダーキーボードのクリック処理を上書き
+keyboardLeader.querySelectorAll('button').forEach(btn => {
+    btn.onclick = () => inputLeaderKana(btn.textContent);
+});
+specialKeyboardLeader.querySelectorAll('button').forEach(btn => {
+    btn.onclick = () => inputLeaderKana(btn.textContent);
+});
+updateLeaderSelection();
+
+document.getElementById('leaderAnswerBtn').onclick = () => {
+    leaderAnswer = Array.from(leaderInputs).map(i => i.value || '×');
+    const validCount = leaderAnswer.filter(k => k !== '×').length;
+    if (validCount < 2) { alert('2文字以上入力してください！'); return; }
+    socket.emit('setTeamAnswer', leaderAnswer);
+    leaderAnswered = true;
+    document.getElementById('leaderAnswerBtn').disabled = true;
+    leaderInputs.forEach(i => { if (i.value && i.value !== '×') i.value = '🔒'; });
+    document.getElementById('leaderAnswerBtn').textContent = '送信済み！メンバーを待っています...';
+};
+
+// チームゲーム開始
+socket.on('teamGameStart', (data) => {
+    myTeam = data.myTeam || myTeam;
+    AudioManager.reset();
+    AudioManager.playBGM('battle');
+    teamUsedKana = [];
+
+    // チームバトルエリア構築
+    const area = document.getElementById('teamBattleArea');
+    area.innerHTML = '';
+    data.activeTeams.forEach(team => {
+        const card = document.createElement('div');
+        card.className = 'teamBattleCard';
+        card.id = 'teamBattleCard-' + team;
+        card.style.borderColor = TEAM_COLORS[team];
+
+        const label = document.createElement('div');
+        label.className = 'teamBattleLabel';
+        label.style.color = TEAM_COLORS[team];
+        label.textContent = TEAM_LABELS[team];
+        card.appendChild(label);
+
+        // カード表示
+        const cardsDiv = document.createElement('div');
+        cardsDiv.classList.add('cards');
+        cardsDiv.id = 'teamCards-' + team;
+        const len = data.teamAnswerLengths[team] || 7;
+        for (let i = 0; i < len; i++) {
+            const c = document.createElement('div');
+            c.classList.add('card');
+            c.textContent = '？';
+            c.id = `tcard-${team}-${i}`;
+            cardsDiv.appendChild(c);
+        }
+        card.appendChild(cardsDiv);
+
+        // メンバー一覧
+        const memberDiv = document.createElement('div');
+        memberDiv.id = 'teamMemberList-' + team;
+        memberDiv.style.cssText = 'font-size:13px; margin-top:6px;';
+        const members = data.teams[team].filter(id => data.teamLeaders[team] !== id);
+        members.forEach(id => {
+            const p = document.createElement('div');
+            p.id = 'teamMember-' + id;
+            const charId = data.playerChars[id] || 1;
+            p.innerHTML = `<img src="/char${charId}.png" style="width:20px;height:20px;vertical-align:middle;"> ${data.playerNames[id]}`;
+            memberDiv.appendChild(p);
+        });
+        card.appendChild(memberDiv);
+
+        area.appendChild(card);
+    });
+
+    showScreen('screenTeamBattle');
+
+    // キーボード表示切替
+    if (myRole === 'member') {
+        document.getElementById('keyboardAreaTeam').style.display = 'flex';
+        document.getElementById('emojiPalette').style.display = 'none';
+        buildTeamKeyboard();
+    } else if (myRole === 'leader') {
+        document.getElementById('keyboardAreaTeam').style.display = 'none';
+        document.getElementById('emojiPalette').style.display = 'block';
+        buildEmojiPalette();
+    }
+});
+
+// チームキーボード生成
+function buildTeamKeyboard() {
+    const container = document.getElementById('keyboardTeam');
+    container.innerHTML = '';
+    kanaList.forEach(kana => {
+        if (!kana) { container.appendChild(document.createElement('div')); return; }
+        const btn = document.createElement('button');
+        btn.textContent = kana;
+        btn.onclick = () => {
+            if (teamUsedKana.includes(kana)) return;
+            AudioManager.playSE('keyHit');
+            teamUsedKana.push(kana);
+            btn.disabled = true;
+            btn.style.backgroundColor = 'gray';
+            socket.emit('teamAttack', { kana });
+        };
+        container.appendChild(btn);
+    });
+}
+
+// 絵文字パレット生成
+function buildEmojiPalette() {
+    const container = document.getElementById('emojiCategories');
+    container.innerHTML = '';
+    emojiCategories.forEach(cat => {
+        const block = document.createElement('div');
+        block.className = 'emojiCategoryBlock';
+        const catLabel = document.createElement('div');
+        catLabel.style.cssText = 'width:100%; font-size:12px; font-weight:bold; color:#5a2d00;';
+        catLabel.textContent = cat.label;
+        block.appendChild(catLabel);
+        cat.emojis.forEach(emoji => {
+            const btn = document.createElement('button');
+            btn.className = 'emojiBtn';
+            btn.textContent = emoji;
+            btn.onclick = () => {
+                if (selectedEmojis.includes(emoji)) {
+                    selectedEmojis = selectedEmojis.filter(e => e !== emoji);
+                    btn.classList.remove('selected');
+                } else {
+                    if (selectedEmojis.length >= 3) return;
+                    selectedEmojis.push(emoji);
+                    btn.classList.add('selected');
+                }
+                updateEmojiSelected();
+            };
+            block.appendChild(btn);
+        });
+        container.appendChild(block);
+    });
+}
+
+function updateEmojiSelected() {
+    document.getElementById('emojiSelected').textContent = selectedEmojis.join('');
+    document.getElementById('emojiSendBtn').disabled = selectedEmojis.length === 0;
+}
+
+document.getElementById('emojiSendBtn').onclick = () => {
+    if (selectedEmojis.length === 0) return;
+    socket.emit('sendHint', [...selectedEmojis]);
+    selectedEmojis = [];
+    document.querySelectorAll('.emojiBtn').forEach(b => b.classList.remove('selected'));
+    updateEmojiSelected();
+};
+
+document.getElementById('emojiClearBtn').onclick = () => {
+    selectedEmojis = [];
+    document.querySelectorAll('.emojiBtn').forEach(b => b.classList.remove('selected'));
+    updateEmojiSelected();
+};
+
+// チーム攻撃結果
+socket.on('teamAttackResult', (data) => {
+    data.hitIndexes.forEach(i => {
+        const card = document.getElementById(`tcard-${data.team}-${i}`);
+        if (card) { card.textContent = data.kana; card.classList.add('opened'); }
+    });
+
+    const resultEl = document.getElementById('teamResult');
+    if (data.attacker === socket.id) {
+        if (data.hitAny) {
+            resultEl.textContent = 'ヒット！続けて攻撃！';
+            resultEl.style.color = '#c0392b';
+            AudioManager.onHit();
+        } else {
+            resultEl.textContent = 'ミス... ターン交代';
+            resultEl.style.color = '#888';
+        }
+    }
+
+    // 次のメンバーをハイライト
+    document.querySelectorAll('[id^="teamMember-"]').forEach(el => {
+        el.style.fontWeight = 'normal';
+        el.style.color = '';
+    });
+    const nextEl = document.getElementById('teamMember-' + data.nextMember);
+    if (nextEl) {
+        nextEl.style.fontWeight = 'bold';
+        nextEl.style.color = '#c0392b';
+        if (data.nextMember === socket.id) AudioManager.playSE('myTurn');
+    }
+});
+
+// ヒント受信
+socket.on('hintReceived', (data) => {
+    const log = document.getElementById('hintLog');
+    const line = document.createElement('div');
+    line.style.cssText = `margin:4px 0; padding:6px 10px; border-radius:8px; background:${TEAM_COLORS[data.team]}22; border-left:3px solid ${TEAM_COLORS[data.team]};`;
+    line.innerHTML = `<span style="font-weight:bold;">${TEAM_LABELS[data.team]} 👑${data.leaderName}:</span> <span style="font-size:24px;">${data.emojis.join('')}</span>`;
+    log.prepend(line);
+});
+
+// チームゲーム終了
+socket.on('teamGameEnd', (data) => {
+    AudioManager.stopBGM();
+    AudioManager.playSE('win');
+    const resultEl = document.getElementById('teamResult');
+    const isMyTeam = data.winnerTeam === myTeam;
+    resultEl.textContent = isMyTeam
+        ? `🎉 ${TEAM_LABELS[data.winnerTeam]} の勝ち！+${data.winnerScore}pt`
+        : `💀 ${TEAM_LABELS[data.winnerTeam]} の勝ち！`;
+    resultEl.style.color = isMyTeam ? '#c0392b' : '#888';
+    document.getElementById('teamRematchBtn').hidden = false;
+});
+
+socket.on('teamMatchEnd', (data) => {
+    const isMyTeam = data.winnerTeam === myTeam;
+    const banner = document.createElement('div');
+    banner.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);';
+    const img = document.createElement('img');
+    img.src = isMyTeam ? '/win.png' : '/lose.png';
+    img.style.cssText = 'max-width:88vw;max-height:70vh;object-fit:contain;border-radius:12px;';
+    const sub = document.createElement('div');
+    sub.style.cssText = 'color:#fff;font-size:16px;margin:16px 0 0;';
+    sub.textContent = isMyTeam ? `目標${data.targetScore}pt達成！完全勝利！` : `${TEAM_LABELS[data.winnerTeam]}が完全勝利！`;
+    const btn = document.createElement('button');
+    btn.textContent = '続ける';
+    btn.style.marginTop = '20px';
+    btn.onclick = () => banner.remove();
+    banner.appendChild(img);
+    banner.appendChild(sub);
+    banner.appendChild(btn);
+    document.body.appendChild(banner);
+});
+
+document.getElementById('teamRematchBtn').onclick = () => {
+    socket.emit('rematch');
+    document.getElementById('teamRematchBtn').hidden = true;
+};
+
 showScreen("screenTitle");
