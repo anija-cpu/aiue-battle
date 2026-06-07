@@ -126,21 +126,7 @@ io.on("connection", (socket) => {
         if (room.started) return;
 
         if (room.mode === 'team-deathmatch') {
-            // チームモードのバリデーション
-             const activeTeams = ['A','B','C','D'].filter(t => room.teams[t] && room.teams[t].length > 0);
-             if (activeTeams.length < 2) {
-                socket.emit("errorMessage", "2チーム以上必要です"); return;
-             }
-            for (const t of activeTeams) {
-                if (!room.teamLeaders[t]) {
-                    socket.emit("errorMessage", `チーム${t}にリーダーがいません`); return;
-                }
-                const members = room.teams[t].filter(id => id !== room.teamLeaders[t]);
-                if (members.length < 1) {
-                    socket.emit("errorMessage", `チーム${t}にメンバーがいません`); return;
-                }
-            }
-
+            
             // チームモード開始
             io.to(socket.roomId).emit("ready", {
                 turnOrder: room.players,
