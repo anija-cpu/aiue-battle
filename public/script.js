@@ -465,7 +465,7 @@ socket.on("roomCreated", (roomId) => {
     
     document.getElementById('teamAddArea').hidden = false;
     document.getElementById('randomAssignBtn').hidden = false;
-    
+
     document.getElementById('randomAssignBtn').onclick = () => {
     socket.emit('randomAssign');
     };
@@ -562,6 +562,7 @@ socket.on("ready", (data) => {
     turnOrder = data.turnOrder;
     playerNames = data.playerNames;
     if (currentMode === 'team-deathmatch') {
+        document.getElementById('teamSelectDone').hidden = false;
         showScreen("screenTeamSelect");
     } else {
         showScreen("screenTheme");
