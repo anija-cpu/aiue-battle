@@ -538,7 +538,11 @@ document.getElementById("startGameBtn").onclick = () => {
 socket.on("ready", (data) => {
     turnOrder = data.turnOrder;
     playerNames = data.playerNames;
-    showScreen("screenTheme");
+    if (currentMode === 'team-deathmatch') {
+        showScreen("screenTeamSelect");
+    } else {
+        showScreen("screenTheme");
+    }
 });
 
 checkButton.onclick = () => {
