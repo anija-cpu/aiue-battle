@@ -573,6 +573,7 @@ room.players.forEach(id => {
 
             // 全プレイヤーにゲーム開始通知
             room.players.forEach(id => {
+                const playerSocket = [...io.sockets.sockets.values()].find(sock => sock.id === id);
                 io.to(id).emit("teamBattleReady", {
                     teams: room.teams,
                     teamLeaders: room.teamLeaders,
@@ -583,7 +584,7 @@ room.players.forEach(id => {
                     teamScores: room.teamScores,
                     targetScore: room.targetScore,
                     timerDuration: room.timerDuration,
-                    myTeam: s ? s.team : null,
+                    myTeam: playerSocket ? playerSocket.team : null,
                 });
             });
         } else {
