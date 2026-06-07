@@ -1478,7 +1478,29 @@ socket.on('teamGameStart', (data) => {
         area.appendChild(card);
     });
 
-    showScreen('screenTeamBattle');
+    socket.on('teamGameStart', (data) => {
+    myTeam = data.myTeam || myTeam;
+    AudioManager.reset();
+    AudioManager.playBGM('battle');
+    teamUsedKana = [];
+
+    // チームバトルエリア構築
+    const area = document.getElementById('teamBattleArea');
+    area.innerHTML = '';
+    data.activeTeams.forEach(team => {
+        // ...既存のカード構築コード...
+    });
+
+    // リーダーは単語入力画面へ、メンバーは待機
+    if (myRole === 'leader') {
+        showScreen('screenLeaderInput');
+    } else {
+        showScreen('screenTeamBattle');
+        document.getElementById('teamResult').textContent = 'リーダーが単語を設定中...';
+        document.getElementById('keyboardAreaTeam').style.display = 'none';
+        document.getElementById('emojiPalette').style.display = 'none';
+    }
+});
 
     // キーボード表示切替
     if (myRole === 'member') {
