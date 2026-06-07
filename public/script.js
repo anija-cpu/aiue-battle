@@ -1692,11 +1692,24 @@ document.getElementById('teamRematchBtn').onclick = () => {
 socket.on('teamBattleReady', (data) => {
     myTeam = data.myTeam || myTeam;
 
-    // チームバトルエリアのカードを正しい長さで再構築
+    // チームバトルエリアを構築
+    const area = document.getElementById('teamBattleArea');
+    area.innerHTML = '';
     data.activeTeams.forEach(team => {
-        const cardsDiv = document.getElementById('teamCards-' + team);
-        if (!cardsDiv) return;
-        cardsDiv.innerHTML = '';
+        const card = document.createElement('div');
+        card.className = 'teamBattleCard';
+        card.id = 'teamBattleCard-' + team;
+        card.style.borderColor = TEAM_COLORS[team];
+
+        const label = document.createElement('div');
+        label.className = 'teamBattleLabel';
+        label.style.color = TEAM_COLORS[team];
+        label.textContent = TEAM_LABELS[team];
+        card.appendChild(label);
+
+        const cardsDiv = document.createElement('div');
+        cardsDiv.classList.add('cards');
+        cardsDiv.id = 'teamCards-' + team;
         const len = data.teamAnswerLengths[team] || 7;
         for (let i = 0; i < len; i++) {
             const c = document.createElement('div');
@@ -1705,6 +1718,22 @@ socket.on('teamBattleReady', (data) => {
             c.id = `tcard-${team}-${i}`;
             cardsDiv.appendChild(c);
         }
+        card.appendChild(cardsDiv);
+
+        const memberDiv = document.createElement('div');
+        memberDiv.id = 'teamMemberList-' + team;
+        memberDiv.style.cssText = 'font-size:13px; margin-top:6px;';
+        const members = data.teams[team].filter(id => data.teamLeaders[team] !== id);
+        members.forEach(id => {
+            const p = document.createElement('div');
+            p.id = 'teamMember-' + id;
+            const charId = (data.playerChars && data.playerChars[id]) || 1;
+            p.innerHTML = `<img src="/char${charId}.png" style="width:20px;height:20px;vertical-align:middle;"> ${data.playerNames[id]}`;
+            memberDiv.appendChild(p);
+        });
+        card.appendChild(memberDiv);
+
+        area.appendChild(card);
     });
 
     showScreen('screenTeamBattle');
