@@ -37,6 +37,14 @@ io.on("connection", (socket) => {
                 timerDuration: 0,  // 0 = 無制限
                 targetScore: 0,    // 0 = 無制限（勝利ポイント）
                 turnTimer: null,
+                mode: 'battle-royale', // 'battle-royale' or 'team-deathmatch'
+                teams: {},             // { A: [socketId, ...], B: [...], ... }
+                teamLeaders: {},       // { A: socketId, B: socketId, ... }
+                teamAnswers: {},       // { A: [...], B: [...] }
+                teamHits: {},          // { A: [bool,...], B: [bool,...] }
+                teamScores: {},        // { A: 0, B: 0, ... }
+                teamTurnIndexes: {},   // { A: 0, B: 0, ... } チーム内のターン
+                teamMemberOrders: {},
             };
         }
         socket.join(roomId);
@@ -355,6 +363,202 @@ room.players.forEach(id => {
             });
         }
     });
+    
+    // =====================
+    // モード設定（部屋主のみ）
+    // =====================
+    socket.on("setMode", (mode) => {
+        const room = rooms[socket.roomId];
+        if (!room) return;
+        if (room.players[0] !== socket.id) return;
+        room.mode = mode;
+        io.to(socket.roomId).emit("modeUpdated", { mode });
+    });
+
+    // =====================
+    // チーム・役割選択
+    // =====================
+    socket.on("selectTeam", ({ team, role }) => {
+        const room = rooms[socket.roomId];
+        if (!room) return;
+
+        // 既存のチームから自分を削除
+        Object.keys(room.teams).forEach(t => {
+            room.teams[t] = room.teams[t].filter(id => id !== socket.id);
+            if (room.teamLeaders[t] === socket.id) delete room.teamLeaders[t];
+        });
+
+        // リーダーは1人だけ
+        if (role === 'leader') {
+            if (room.teamLeaders[team]) {
+                socket.emit("errorMessage", "そのチームにはすでにリーダーがいます");
+                return;
+            }
+            room.teamLeaders[team] = socket.id;
+        }
+
+        if (!room.teams[team]) room.teams[team] = [];
+        room.teams[team].push(socket.id);
+        socket.teamRole = role;
+        socket.team = team;
+
+        io.to(socket.roomId).emit("teamUpdated", {
+            teams: room.teams,
+            teamLeaders: room.teamLeaders,
+            playerNames: room.playerNames,
+            playerChars: room.playerChars,
+        });
+    });
+
+    // =====================
+    // チームデスマッチ：リーダーが単語設定
+    // =====================
+    socket.on("setTeamAnswer", (answerArray) => {
+        const room = rooms[socket.roomId];
+        if (!room) return;
+        const team = socket.team;
+        if (!team) return;
+        if (room.teamLeaders[team] !== socket.id) return;
+        if (!Array.isArray(answerArray) || answerArray.length !== 7) return;
+
+        room.teamAnswers[team] = answerArray;
+        room.teamHits[team] = Array(7).fill(false);
+
+        // 全チームの単語が揃ったら開始
+        const activeTeams = Object.keys(room.teams).filter(t => room.teams[t].length > 0 && room.teamLeaders[t]);
+        const allSet = activeTeams.every(t => room.teamAnswers[t]);
+        if (allSet) {
+            room.started = true;
+            room.eliminated = [];
+
+            // 各チームのメンバーターン順を初期化
+            activeTeams.forEach(t => {
+                const members = room.teams[t].filter(id => room.teamLeaders[t] !== id);
+                room.teamTurnIndexes[t] = 0;
+                room.teamMemberOrders[t] = members;
+            });
+
+            // 全プレイヤーにゲーム開始通知
+            room.players.forEach(id => {
+                io.to(id).emit("teamGameStart", {
+                    teams: room.teams,
+                    teamLeaders: room.teamLeaders,
+                    playerNames: room.playerNames,
+                    playerChars: room.playerChars,
+                    teamAnswerLengths: getTeamAnswerLengths(room, activeTeams),
+                    activeTeams,
+                    teamScores: room.teamScores,
+                    targetScore: room.targetScore,
+                    timerDuration: room.timerDuration,
+                    myTeam: socket.team,
+                });
+            });
+        } else {
+            socket.emit("waitingTeamAnswers");
+        }
+    });
+
+    // =====================
+    // チームデスマッチ：メンバーが攻撃
+    // =====================
+    socket.on("teamAttack", ({ kana }) => {
+        const room = rooms[socket.roomId];
+        if (!room || !room.started) return;
+        const myTeam = socket.team;
+        if (!myTeam) return;
+
+        // 自分のターンか確認
+        const memberOrder = room.teamMemberOrders[myTeam];
+        const currentMember = memberOrder[room.teamTurnIndexes[myTeam] % memberOrder.length];
+        if (socket.id !== currentMember) return;
+
+        clearTurnTimer(room);
+
+        // 自チームの単語に対してヒット判定
+        const answer = room.teamAnswers[myTeam];
+        const hits = room.teamHits[myTeam];
+        let hitAny = false;
+        const hitIndexes = [];
+
+        answer.forEach((k, i) => {
+            if (k === kana && !hits[i]) {
+                hits[i] = true;
+                hitIndexes.push(i);
+                hitAny = true;
+            }
+        });
+
+        // ターン交代判定（ミスしたら次のメンバーへ）
+        const turnChanged = !hitAny;
+        if (turnChanged) {
+            room.teamTurnIndexes[myTeam] = (room.teamTurnIndexes[myTeam] + 1) % memberOrder.length;
+        }
+
+        const nextMember = memberOrder[room.teamTurnIndexes[myTeam] % memberOrder.length];
+
+        // 全員に結果通知
+        io.to(socket.roomId).emit("teamAttackResult", {
+            kana,
+            team: myTeam,
+            attacker: socket.id,
+            hitAny,
+            hitIndexes,
+            turnChanged,
+            nextMember,
+            teamHits: room.teamHits,
+        });
+
+        // ヒントをリセット
+        room.currentHints = room.currentHints || {};
+        room.currentHints[myTeam] = [];
+
+        // 勝利判定：自チームの単語を全部当てた
+        const allOpen = answer.every((k, i) => k === "×" || hits[i]);
+        if (allOpen) {
+            room.started = false;
+            clearTurnTimer(room);
+
+            const score = answer.filter(k => k !== "×").length;
+            room.teamScores[myTeam] = (room.teamScores[myTeam] || 0) + score;
+
+            io.to(socket.roomId).emit("teamGameEnd", {
+                winnerTeam: myTeam,
+                winnerScore: score,
+                teamScores: room.teamScores,
+                targetScore: room.targetScore,
+                playerNames: room.playerNames,
+            });
+
+            if (room.targetScore > 0 && room.teamScores[myTeam] >= room.targetScore) {
+                room.teamScores = {};
+                io.to(socket.roomId).emit("teamMatchEnd", {
+                    winnerTeam: myTeam,
+                    targetScore: room.targetScore,
+                });
+            }
+            return;
+        }
+
+        startTurnTimer(room, socket.roomId);
+    });
+
+    // =====================
+    // リーダーが絵文字ヒント送信
+    // =====================
+    socket.on("sendHint", (emojis) => {
+        const room = rooms[socket.roomId];
+        if (!room) return;
+        const myTeam = socket.team;
+        if (!myTeam) return;
+        if (room.teamLeaders[myTeam] !== socket.id) return;
+        if (!Array.isArray(emojis) || emojis.length === 0 || emojis.length > 3) return;
+
+        io.to(socket.roomId).emit("hintReceived", {
+            team: myTeam,
+            emojis,
+            leaderName: room.playerNames[socket.id],
+        });
+    });
 
     // =====================
     // 切断
@@ -438,6 +642,14 @@ function sendToSpectators(roomId, room, event, data) {
     [...sockets].filter(id => !room.players.includes(id)).forEach(id => {
         io.to(id).emit(event, data);
     });
+}
+
+function getTeamAnswerLengths(room, activeTeams) {
+    const result = {};
+    activeTeams.forEach(t => {
+        result[t] = room.teamAnswers[t] ? room.teamAnswers[t].length : 7;
+    });
+    return result;
 }
 
 server.listen(3000, () => {
