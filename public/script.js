@@ -1184,6 +1184,10 @@ function positionStartBtn() {
     const btn = document.getElementById("startBtn");
     if (!btn) return;
 
+    // タイトル画面が非表示の場合はスキップ
+    const titleScreen = document.getElementById("screenTitle");
+    if (!titleScreen || titleScreen.style.display === 'none') return;
+
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const imgRatio = 16 / 9;
