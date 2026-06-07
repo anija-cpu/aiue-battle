@@ -546,10 +546,14 @@ room.players.forEach(id => {
         const room = rooms[socket.roomId];
         if (!room) return;
         const team = socket.team;
+        console.log("setTeamAnswer:", socket.id, "team:", team, "role:", socket.teamRole);
+        console.log("teamLeaders:", room.teamLeaders);
+        console.log("teamAnswers before:", Object.keys(room.teamAnswers));
         if (!team) return;
-        if (room.teamLeaders[team] !== socket.id) return;
-        if (!Array.isArray(answerArray) || answerArray.length !== 7) return;
-
+        if (room.teamLeaders[team] !== socket.id) {
+        console.log("not leader, skip");
+        return;
+        }
         room.teamAnswers[team] = answerArray;
         room.teamHits[team] = Array(7).fill(false);
 
