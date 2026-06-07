@@ -1762,4 +1762,11 @@ socket.on('teamBattleReady', (data) => {
     }
 });
 
+// ターン表示
+    const firstTeam = data.activeTeams[0];
+    const firstMember = data.teams[firstTeam].find(id => data.teamLeaders[firstTeam] !== id);
+    updateTeamTurnDisplay(firstTeam, firstMember, data.playerNames);
+
+    showScreen('screenTeamBattle');
+
 showScreen("screenTitle");
