@@ -1526,6 +1526,29 @@ socket.on('teamGameStart', (data) => {
 });
 
 // チームキーボード生成
+function updateTeamTurnDisplay(team, memberId, names) {
+    const resultEl = document.getElementById('teamResult');
+    const name = names ? names[memberId] : playerNames[memberId];
+    if (memberId === socket.id) {
+        resultEl.textContent = `${TEAM_LABELS[team]} あなたのターン！`;
+        resultEl.style.color = TEAM_COLORS[team];
+        AudioManager.playSE('myTurn');
+    } else {
+        resultEl.textContent = `${TEAM_LABELS[team]} ${name}のターン`;
+        resultEl.style.color = '#888';
+    }
+
+    document.querySelectorAll('[id^="teamMember-"]').forEach(el => {
+        el.style.fontWeight = 'normal';
+        el.style.color = '';
+    });
+    const nextEl = document.getElementById('teamMember-' + memberId);
+    if (nextEl) {
+        nextEl.style.fontWeight = 'bold';
+        nextEl.style.color = TEAM_COLORS[team];
+    }
+}
+
 function buildTeamKeyboard() {
     const container = document.getElementById('keyboardTeam');
     container.innerHTML = '';
@@ -1603,29 +1626,11 @@ socket.on('teamAttackResult', (data) => {
         if (card) { card.textContent = data.kana; card.classList.add('opened'); }
     });
 
-    const resultEl = document.getElementById('teamResult');
-    if (data.attacker === socket.id) {
-        if (data.hitAny) {
-            resultEl.textContent = 'ヒット！続けて攻撃！';
-            resultEl.style.color = '#c0392b';
-            AudioManager.onHit();
-        } else {
-            resultEl.textContent = 'ミス... ターン交代';
-            resultEl.style.color = '#888';
-        }
+    if (data.hitAny) {
+        AudioManager.onHit();
     }
 
-    // 次のメンバーをハイライト
-    document.querySelectorAll('[id^="teamMember-"]').forEach(el => {
-        el.style.fontWeight = 'normal';
-        el.style.color = '';
-    });
-    const nextEl = document.getElementById('teamMember-' + data.nextMember);
-    if (nextEl) {
-        nextEl.style.fontWeight = 'bold';
-        nextEl.style.color = '#c0392b';
-        if (data.nextMember === socket.id) AudioManager.playSE('myTurn');
-    }
+    updateTeamTurnDisplay(data.team, data.nextMember, null);
 });
 
 // ヒント受信
@@ -1691,6 +1696,14 @@ document.getElementById('teamRematchBtn').onclick = () => {
 
 socket.on('teamBattleReady', (data) => {
     myTeam = data.myTeam || myTeam;
+
+        if (data.teamLeaders[myTeam] === socket.id) {
+        myRole = 'leader';
+    } else {
+        myRole = 'member';
+    }
+
+    
 
     // チームバトルエリアを構築
     const area = document.getElementById('teamBattleArea');
