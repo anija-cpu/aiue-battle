@@ -1184,7 +1184,7 @@ function positionStartBtn() {
     }
 
     const btnY = imgY + imgH * 0.83;
-    const btnX = imgX + imgW * 0.5;
+    const btnX = imgX + imgW * 0.42;
 
     btn.style.top = btnY + "px";
     btn.style.left = btnX + "px";
