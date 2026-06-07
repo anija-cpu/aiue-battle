@@ -562,7 +562,9 @@ socket.on("ready", (data) => {
     turnOrder = data.turnOrder;
     playerNames = data.playerNames;
     if (currentMode === 'team-deathmatch') {
-        document.getElementById('teamSelectDone').hidden = false;
+        if (isHost) {
+            document.getElementById('teamSelectDone').hidden = false;
+        }
         showScreen("screenTeamSelect");
     } else {
         showScreen("screenTheme");
