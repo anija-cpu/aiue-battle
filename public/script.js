@@ -1,5 +1,14 @@
 const socket = io();
 
+const socket = io();
+
+// ホスト割り当て関数（グローバル）
+function hostAssign(targetId, value) {
+    if (!value) return;
+    const [team, role] = value.split('-');
+    socket.emit('selectTeam', { team, role, targetId });
+}
+
 // =====================
 // 画面要素
 // =====================
@@ -446,6 +455,8 @@ socket.on("roomCreated", (roomId) => {
     myRoomId = roomId;
     AudioManager.playBGM('lobby');
     buildCharSelect();
+    
+    document.getElementById('teamAddArea').hidden = false;
 
     waitRoomId.innerHTML = "";
     const idText = document.createElement("span");
@@ -1247,13 +1258,13 @@ socket.on('modeUpdated', (data) => {
     currentMode = data.mode;
 });
 
-// チーム選択ボタン
+// チーム選択ボタン（自分自身の選択）
 document.querySelectorAll('.teamJoinLeader').forEach(btn => {
     btn.onclick = () => {
         const team = btn.dataset.team;
         myTeam = team;
         myRole = 'leader';
-        socket.emit('selectTeam', { team, role: 'leader' });
+        socket.emit('selectTeam', { team, role: 'leader', targetId: socket.id });
     };
 });
 
@@ -1262,19 +1273,66 @@ document.querySelectorAll('.teamJoinMember').forEach(btn => {
         const team = btn.dataset.team;
         myTeam = team;
         myRole = 'member';
-        socket.emit('selectTeam', { team, role: 'member' });
+        socket.emit('selectTeam', { team, role: 'member', targetId: socket.id });
     };
 });
 
 socket.on('teamUpdated', (data) => {
+    // チームカードのメンバー表示更新
     ['A','B','C','D'].forEach(team => {
         const listEl = document.getElementById('teamList-' + team);
-        if (!listEl) return;
-        const members = data.teams[team] || [];
-        listEl.innerHTML = members.map(id => {
-            const isLeader = data.teamLeaders[team] === id;
-            return `<div>${isLeader ? '👑' : '⚔️'} ${data.playerNames[id]}</div>`;
+        const leaderEl = document.getElementById('leaderName-' + team);
+        if (!listEl || !leaderEl) return;
+
+        const members = (data.teams[team] || []).filter(id => data.teamLeaders[team] !== id);
+        listEl.innerHTML = members.map(id =>
+            `<div>⚔️ ${data.playerNames[id]}</div>`
+        ).join('');
+
+        const leaderId = data.teamLeaders[team];
+        leaderEl.textContent = leaderId ? `👑 ${data.playerNames[leaderId]}` : '';
+    });
+
+    // 参加者一覧更新
+    const assignList = document.getElementById('playerAssignList');
+    if (assignList) {
+        assignList.innerHTML = data.allPlayers.map(id => {
+            const team = Object.keys(data.teams).find(t => (data.teams[t] || []).includes(id));
+            const isLeader = team && data.teamLeaders[team] === id;
+            const teamLabel = team ? `${TEAM_LABELS[team]} ${isLeader ? '👑リーダー' : '⚔️メンバー'}` : '未選択';
+            const teamColor = team ? TEAM_COLORS[team] : '#aaa';
+
+            // ホスト用：他のプレイヤーを割り当てるドロップダウン
+            const isHost = data.allPlayers[0] === socket.id;
+            let hostControls = '';
+            if (isHost && id !== socket.id) {
+                hostControls = `
+                    <select onchange="hostAssign('${id}', this.value)" style="font-size:12px; border-radius:6px; border:1px solid #c8965a; margin-left:8px; padding:2px 4px;">
+                        <option value="">割り当て</option>
+                        ${['A','B','C','D'].filter(t => {
+                            const card = document.querySelector(`.teamCard[data-team="${t}"]`);
+                            return card && card.style.display !== 'none';
+                        }).flatMap(t => [
+                            `<option value="${t}-leader">🔴 チーム${t} 👑リーダー</option>`,
+                            `<option value="${t}-member">🔴 チーム${t} ⚔️メンバー</option>`
+                        ]).join('')}
+                    </select>
+                `;
+            }
+
+            return `<div style="padding:4px 0; border-bottom:1px solid #e8e0d0; display:flex; align-items:center; justify-content:space-between;">
+                <span>${data.playerNames[id]}</span>
+                <span style="color:${teamColor}; font-size:13px;">${teamLabel}${hostControls}</span>
+            </div>`;
         }).join('');
+    }
+
+    // 自分のteam/roleを更新
+    ['A','B','C','D'].forEach(t => {
+        if ((data.teams[t] || []).includes(socket.id)) {
+            myTeam = t;
+            myRole = data.teamLeaders[t] === socket.id ? 'leader' : 'member';
+        }
     });
 });
 
@@ -1540,6 +1598,20 @@ socket.on('teamMatchEnd', (data) => {
     banner.appendChild(btn);
     document.body.appendChild(banner);
 });
+
+// チームC・D追加ボタン
+document.getElementById('addTeamC').onclick = () => {
+    document.querySelector('.teamCard[data-team="C"]').style.display = 'flex';
+    document.getElementById('addTeamC').hidden = true;
+    document.getElementById('addTeamD').hidden = false;
+    socket.emit('addTeam', 'C');
+};
+
+document.getElementById('addTeamD').onclick = () => {
+    document.querySelector('.teamCard[data-team="D"]').style.display = 'flex';
+    document.getElementById('addTeamD').hidden = true;
+    socket.emit('addTeam', 'D');
+};
 
 document.getElementById('teamRematchBtn').onclick = () => {
     socket.emit('rematch');

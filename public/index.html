@@ -126,33 +126,56 @@
 <!-- ②-1 チーム選択画面 -->
 <div id="screenTeamSelect" hidden>
     <h2>チームと役割を選んでください</h2>
+
+    <!-- 参加者一覧 -->
+    <div style="margin: 12px auto; max-width: 500px; background: rgba(255,248,235,0.8); border-radius: 12px; padding: 12px 16px;">
+        <p style="font-weight:bold; color:#5a2d00; margin-bottom:8px;">👥 参加者一覧</p>
+        <div id="playerAssignList"></div>
+    </div>
+
+    <!-- チーム追加ボタン（ホストのみ表示） -->
+    <div id="teamAddArea" hidden style="margin: 8px 0;">
+        <button id="addTeamC" >＋ チームC追加</button>
+        <button id="addTeamD" hidden>＋ チームD追加</button>
+    </div>
+
+    <!-- チームカード -->
     <div id="teamSelectGrid" style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin:16px 0;">
-        <!-- A/B/C/D チーム -->
+
         <div class="teamCard" data-team="A" style="border-color:#e74c3c;">
             <div class="teamLabel" style="background:#e74c3c;">🔴 チームA</div>
             <button class="teamJoinLeader" data-team="A">👑 リーダー</button>
+            <div class="teamLeaderName" id="leaderName-A" style="font-size:12px; color:#5a2d00; min-height:16px;"></div>
             <button class="teamJoinMember" data-team="A">⚔️ メンバー</button>
             <div class="teamMemberList" id="teamList-A"></div>
         </div>
+
         <div class="teamCard" data-team="B" style="border-color:#3498db;">
             <div class="teamLabel" style="background:#3498db;">🔵 チームB</div>
             <button class="teamJoinLeader" data-team="B">👑 リーダー</button>
+            <div class="teamLeaderName" id="leaderName-B" style="font-size:12px; color:#5a2d00; min-height:16px;"></div>
             <button class="teamJoinMember" data-team="B">⚔️ メンバー</button>
             <div class="teamMemberList" id="teamList-B"></div>
         </div>
-        <div class="teamCard" data-team="C" style="border-color:#2ecc71;">
+
+        <div class="teamCard" data-team="C" style="border-color:#2ecc71; display:none;">
             <div class="teamLabel" style="background:#2ecc71;">🟢 チームC</div>
             <button class="teamJoinLeader" data-team="C">👑 リーダー</button>
+            <div class="teamLeaderName" id="leaderName-C" style="font-size:12px; color:#5a2d00; min-height:16px;"></div>
             <button class="teamJoinMember" data-team="C">⚔️ メンバー</button>
             <div class="teamMemberList" id="teamList-C"></div>
         </div>
-        <div class="teamCard" data-team="D" style="border-color:#f39c12;">
+
+        <div class="teamCard" data-team="D" style="border-color:#f39c12; display:none;">
             <div class="teamLabel" style="background:#f39c12;">🟡 チームD</div>
             <button class="teamJoinLeader" data-team="D">👑 リーダー</button>
+            <div class="teamLeaderName" id="leaderName-D" style="font-size:12px; color:#5a2d00; min-height:16px;"></div>
             <button class="teamJoinMember" data-team="D">⚔️ メンバー</button>
             <div class="teamMemberList" id="teamList-D"></div>
         </div>
+
     </div>
+
     <p id="teamSelectInfo" style="color:#888;"></p>
     <button id="teamSelectDone" hidden>ゲーム開始</button>
 </div>

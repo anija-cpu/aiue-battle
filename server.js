@@ -378,14 +378,17 @@ room.players.forEach(id => {
     // =====================
     // チーム・役割選択
     // =====================
-    socket.on("selectTeam", ({ team, role }) => {
+    socket.on("selectTeam", ({ team, role, targetId }) => {
         const room = rooms[socket.roomId];
         if (!room) return;
+        
+        // ホスト以外は自分のみ変更可能
+        const actualTarget = (room.players[0] === socket.id) ? targetId : socket.id;
 
-        // 既存のチームから自分を削除
+        // 既存チームから対象を削除
         Object.keys(room.teams).forEach(t => {
-            room.teams[t] = room.teams[t].filter(id => id !== socket.id);
-            if (room.teamLeaders[t] === socket.id) delete room.teamLeaders[t];
+            room.teams[t] = (room.teams[t] || []).filter(id => id !== actualTarget);
+            if (room.teamLeaders[t] === actualTarget) delete room.teamLeaders[t];
         });
 
         // リーダーは1人だけ
@@ -394,20 +397,46 @@ room.players.forEach(id => {
                 socket.emit("errorMessage", "そのチームにはすでにリーダーがいます");
                 return;
             }
-            room.teamLeaders[team] = socket.id;
+            room.teamLeaders[team] = actualTarget;
         }
 
         if (!room.teams[team]) room.teams[team] = [];
-        room.teams[team].push(socket.id);
-        socket.teamRole = role;
-        socket.team = team;
+        room.teams[team].push(actualTarget);
+
+        // 対象のsocketのteam/roleを更新
+        const targetSocket = [...io.sockets.sockets.values()].find(s => s.id === actualTarget);
+        if (targetSocket) {
+            targetSocket.team = team;
+            targetSocket.teamRole = role;
+        }
 
         io.to(socket.roomId).emit("teamUpdated", {
             teams: room.teams,
             teamLeaders: room.teamLeaders,
             playerNames: room.playerNames,
             playerChars: room.playerChars,
+            allPlayers: room.players,
         });
+    });
+
+    socket.on("addTeam", (team) => {
+        const room = rooms[socket.roomId];
+        if (!room) return;
+        if (room.players[0] !== socket.id) return;
+        if (!room.teams[team]) room.teams[team] = [];
+        io.to(socket.roomId).emit("teamAdded", { team });
+    });
+
+    socket.on('teamAdded', (data) => {
+        const card = document.querySelector(`.teamCard[data-team="${data.team}"]`);
+        if (card) card.style.display = 'flex';
+        if (data.team === 'C') {
+            document.getElementById('addTeamC').hidden = true;
+            document.getElementById('addTeamD').hidden = false;
+        }
+        if (data.team === 'D') {
+            document.getElementById('addTeamD').hidden = true;
+     }
     });
 
     // =====================
