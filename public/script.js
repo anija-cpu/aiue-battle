@@ -1215,7 +1215,7 @@ function positionStartBtn() {
 }
 
 window.addEventListener("resize", positionStartBtn);
-positionStartBtn();
+setTimeout(positionStartBtn, 100);
 
 // =====================
 // チームモード関連
