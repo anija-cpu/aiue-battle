@@ -433,18 +433,22 @@ function markEliminated(id) {
 // ルーム作成
 // =====================
 createRoomBtn.onclick = () => {
+    createRoomBtn.disabled = true;
     const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
     roomInput.value = roomId;
     const playerName = document.getElementById("nameInput").value || "プレイヤー1";
     isHost = true;
     isSpectator = false;
     socket.emit("createRoom", roomId, playerName);
+    setTimeout(() => { createRoomBtn.disabled = false; }, 2000);
 };
 
 joinRoomBtn.onclick = () => {
+    joinRoomBtn.disabled = true;
     const playerName = document.getElementById("nameInput2").value || "プレイヤー";
     isSpectator = false;
     socket.emit("joinRoom", roomInput.value, playerName);
+    setTimeout(() => { joinRoomBtn.disabled = false; }, 2000);
 };
 
 // =====================
