@@ -419,6 +419,51 @@ room.players.forEach(id => {
         });
     });
 
+    socket.on("randomAssign", () => {
+        const room = rooms[socket.roomId];
+        if (!room) return;
+        if (room.players[0] !== socket.id) return;
+
+        // アクティブなチームを取得
+        const activeTeams = ['A','B','C','D'].filter(t => room.teams[t] !== undefined);
+        if (activeTeams.length < 2) activeTeams.push('A', 'B');
+
+        // チームをリセット
+        activeTeams.forEach(t => {
+            room.teams[t] = [];
+            delete room.teamLeaders[t];
+        });
+
+        // プレイヤーをシャッフル
+        const shuffled = [...room.players].sort(() => Math.random() - 0.5);
+
+        // 均等に割り当て
+        shuffled.forEach((id, i) => {
+            const team = activeTeams[i % activeTeams.length];
+            if (!room.teams[team]) room.teams[team] = [];
+
+            // 各チーム最初の1人をリーダーに
+            if (!room.teamLeaders[team]) {
+                room.teamLeaders[team] = id;
+                room.teams[team].push(id);
+                const s = [...io.sockets.sockets.values()].find(s => s.id === id);
+                if (s) { s.team = team; s.teamRole = 'leader'; }
+            } else {
+                room.teams[team].push(id);
+                const s = [...io.sockets.sockets.values()].find(s => s.id === id);
+                if (s) { s.team = team; s.teamRole = 'member'; }
+            }
+        });
+
+        io.to(socket.roomId).emit("teamUpdated", {
+            teams: room.teams,
+            teamLeaders: room.teamLeaders,
+            playerNames: room.playerNames,
+            playerChars: room.playerChars,
+            allPlayers: room.players,
+        });
+    });
+
     socket.on("addTeam", (team) => {
         const room = rooms[socket.roomId];
         if (!room) return;

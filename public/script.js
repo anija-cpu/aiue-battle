@@ -464,6 +464,11 @@ socket.on("roomCreated", (roomId) => {
     buildCharSelect();
     
     document.getElementById('teamAddArea').hidden = false;
+    document.getElementById('randomAssignBtn').hidden = false;
+    
+    document.getElementById('randomAssignBtn').onclick = () => {
+    socket.emit('randomAssign');
+    };
 
     waitRoomId.innerHTML = "";
     const idText = document.createElement("span");
