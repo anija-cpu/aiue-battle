@@ -475,6 +475,50 @@ room.players.forEach(id => {
         });
     });
 
+    socket.on("startTeamGame", () => {
+    const room = rooms[socket.roomId];
+    if (!room) return;
+    if (room.players[0] !== socket.id) return;
+
+    const activeTeams = ['A','B','C','D'].filter(t => room.teams[t] && room.teams[t].length > 0);
+    if (activeTeams.length < 2) {
+        socket.emit("errorMessage", "2チーム以上必要です"); return;
+    }
+    for (const t of activeTeams) {
+        if (!room.teamLeaders[t]) {
+            socket.emit("errorMessage", `チーム${t}にリーダーがいません`); return;
+        }
+        const members = room.teams[t].filter(id => id !== room.teamLeaders[t]);
+        if (members.length < 1) {
+            socket.emit("errorMessage", `チーム${t}にメンバーがいません`); return;
+        }
+    }
+
+    activeTeams.forEach(t => {
+        const members = room.teams[t].filter(id => id !== room.teamLeaders[t]);
+        room.teamMemberOrders[t] = members;
+        room.teamTurnIndexes[t] = 0;
+    });
+
+    room.started = true;
+
+    room.players.forEach(id => {
+        const s = [...io.sockets.sockets.values()].find(s => s.id === id);
+        io.to(id).emit("teamGameStart", {
+            teams: room.teams,
+            teamLeaders: room.teamLeaders,
+            playerNames: room.playerNames,
+            playerChars: room.playerChars,
+            teamAnswerLengths: {},
+            activeTeams,
+            teamScores: room.teamScores,
+            targetScore: room.targetScore,
+            timerDuration: room.timerDuration,
+            myTeam: s ? s.team : null,
+        });
+    });
+});
+
     socket.on("addTeam", (team) => {
         const room = rooms[socket.roomId];
         if (!room) return;
