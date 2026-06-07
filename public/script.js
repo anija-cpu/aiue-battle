@@ -1,6 +1,5 @@
 const socket = io();
 
-const socket = io();
 
 // ホスト割り当て関数（グローバル）
 function hostAssign(targetId, value) {
