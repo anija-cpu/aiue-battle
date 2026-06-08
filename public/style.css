@@ -627,3 +627,71 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
     vertical-align: middle;
     flex-shrink: 0;
 }
+
+/* チームバトルキーボード */
+#keyboardAreaTeam {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 24px;
+    padding: 16px;
+    background: rgba(200, 220, 255, 0.5);
+    border-radius: 12px;
+}
+
+#keyboardTeam {
+    display: grid;
+    grid-template-columns: repeat(10, 48px);
+    gap: 5px;
+}
+
+#keyboardTeam button {
+    width: 48px;
+    height: 48px;
+    font-size: 17px;
+    padding: 0;
+    background: linear-gradient(180deg, #fff, #e8f4ff);
+    color: #5a2d6a;
+    border: 2px solid #a0c8ff;
+    border-radius: 10px;
+    box-shadow: 0 4px 0 #6aa8e8;
+    margin: 0;
+    font-weight: bold;
+}
+
+#keyboardTeam button:hover:not(:disabled) {
+    background: linear-gradient(180deg, #e8f4ff, #c8e8ff);
+}
+
+#keyboardTeam button:disabled {
+    background: #ddd;
+    border-color: #bbb;
+    color: #999;
+    box-shadow: 0 2px 0 #aaa;
+}
+
+/* リーダーキーボード */
+#keyboardAreaLeader {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 24px;
+    padding: 16px;
+    background: rgba(200, 220, 255, 0.5);
+    border-radius: 12px;
+}
+
+#keyboardLeader button,
+#specialKeyboardLeader button {
+    width: 48px;
+    height: 48px;
+    font-size: 17px;
+    padding: 0;
+    background: linear-gradient(180deg, #fff, #e8f4ff);
+    color: #5a2d6a;
+    border: 2px solid #a0c8ff;
+    border-radius: 10px;
+    box-shadow: 0 4px 0 #6aa8e8;
+    margin: 0;
+    font-weight: bold;
+}
