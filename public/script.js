@@ -1736,6 +1736,8 @@ socket.on('teamGameEnd', (data) => {
         : `💀 ${TEAM_LABELS[data.winnerTeam]} の勝ち！`;
     resultEl.style.color = isMyTeam ? '#c0392b' : '#888';
     document.getElementById('teamRematchBtn').hidden = false;
+    currentTeamScores = data.teamScores || {};
+    currentTargetScore = data.targetScore || 0;
     updateTeamScorePanel(data.teamScores, data.targetScore);
 });
 
