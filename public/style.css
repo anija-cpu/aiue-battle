@@ -532,6 +532,8 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
     background: rgba(255,255,255,0.92);
     flex: 1;
     max-width: 340px;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .teamBattleLabel {
@@ -700,4 +702,35 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
     box-shadow: 0 4px 0 #6aa8e8;
     margin: 0;
     font-weight: bold;
+}
+
+#teamBattleArea .cards {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+    flex-wrap: nowrap;
+}
+
+#teamBattleArea .card {
+    flex: 1 1 0;
+    min-width: 18px;
+    max-width: 44px;
+    aspect-ratio: 3 / 4;
+    height: auto;
+    line-height: normal;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(10px, 1.6vw, 20px);
+    border-radius: 6px;
+    box-sizing: border-box;
+    background: #888 !important;
+    color: #fff !important;
+    font-weight: bold;
+}
+
+#teamBattleArea .card.opened {
+    background: #fff9ee !important;
+    color: #c0392b !important;
 }
