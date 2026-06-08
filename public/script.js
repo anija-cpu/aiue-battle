@@ -934,7 +934,31 @@ socket.on("rematchReady", () => {
     document.getElementById("allPlayersArea").innerHTML = "";
     const oldWord = document.getElementById("myWordDisplay");
     if (oldWord) oldWord.remove();
-    showScreen("screenTheme");
+    if (currentMode === 'team-deathmatch') {
+        leaderAnswered = false;
+        leaderCardIndex = 0;
+        leaderAnswer = [];
+        leaderInputs.forEach(i => i.value = '');
+        document.getElementById('leaderAnswerBtn').disabled = false;
+        document.getElementById('leaderAnswerBtn').textContent = '決定';
+        teamUsedKana = [];
+
+        const kb = document.getElementById('keyboardTeam');
+        if (kb) kb.innerHTML = '';
+
+        selectedEmojis = [];
+
+        if (myRole === 'leader') {
+            showScreen('screenLeaderInput');
+        } else {
+            showScreen('screenTeamBattle');
+            document.getElementById('teamResult').textContent = 'リーダーが単語を設定中...';
+            document.getElementById('keyboardAreaTeam').style.opacity = '0.4';
+            document.getElementById('keyboardAreaTeam').style.pointerEvents = 'none';
+        }
+    } else {
+        showScreen("screenTheme");
+    }
 });
 
 document.getElementById("rematchBtn").onclick = () => {
