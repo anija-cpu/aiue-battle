@@ -561,12 +561,27 @@ document.getElementById("startGameBtn").onclick = () => {
 socket.on("ready", (data) => {
     turnOrder = data.turnOrder;
     playerNames = data.playerNames;
-    if (currentMode === 'team-deathmatch') {
-        if (isHost) {
-            document.getElementById('teamSelectDone').hidden = false;
+    if (data.mode === 'team-deathmatch') {
+        currentMode = 'team-deathmatch';
+        if (myTeam) {
+            // 再戦：すでにチームが決まっている
+            if (myRole === 'leader') {
+                showScreen('screenLeaderInput');
+            } else {
+                showScreen('screenTeamBattle');
+                document.getElementById('teamResult').textContent = 'リーダーが単語を設定中...';
+                document.getElementById('keyboardAreaTeam').style.opacity = '0.4';
+                document.getElementById('keyboardAreaTeam').style.pointerEvents = 'none';
+            }
+        } else {
+            // 初回：チーム選択画面へ
+            if (isHost) {
+                document.getElementById('teamSelectDone').hidden = false;
+            }
+            showScreen("screenTeamSelect");
         }
-        showScreen("screenTeamSelect");
     } else {
+        currentMode = 'battle-royale';
         showScreen("screenTheme");
     }
 });
@@ -1727,6 +1742,7 @@ socket.on('teamGameEnd', (data) => {
         : `💀 ${TEAM_LABELS[data.winnerTeam]} の勝ち！`;
     resultEl.style.color = isMyTeam ? '#c0392b' : '#888';
     document.getElementById('teamRematchBtn').hidden = false;
+    updateTeamScorePanel(data.teamScores, data.targetScore);
 });
 
 socket.on('teamMatchEnd', (data) => {
