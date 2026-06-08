@@ -1675,8 +1675,13 @@ socket.on('hintReceived', (data) => {
 
     // メンバーのキーボードを有効化
     if (myRole === 'member' && myTeam === data.team) {
-        document.getElementById('keyboardAreaTeam').style.opacity = '1';
-        document.getElementById('keyboardAreaTeam').style.pointerEvents = 'auto';
+        const kbArea = document.getElementById('keyboardAreaTeam');
+        kbArea.style.display = 'flex';
+        kbArea.style.opacity = '1';
+        kbArea.style.pointerEvents = 'auto';
+        // キーボードが空の場合は構築
+        const kb = document.getElementById('keyboardTeam');
+        if (kb && kb.children.length === 0) buildTeamKeyboard();
         AudioManager.playSE('myTurn');
     }
 
