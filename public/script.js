@@ -1627,9 +1627,29 @@ socket.on('teamAttackResult', (data) => {
 
     if (data.hitAny) {
         AudioManager.onHit();
-    }
+        // ヒット→同じメンバー継続
+        updateTeamTurnDisplay(data.team, data.attacker, null);
+    } else {
+        // ミス→相手チームのリーダーのターン
+        const resultEl = document.getElementById('teamResult');
+        const leaderName = playerNames[data.nextTeam] || '？';
+        resultEl.textContent = `${TEAM_LABELS[data.nextTeam]} 👑リーダーのヒント待ち...`;
+        resultEl.style.color = TEAM_COLORS[data.nextTeam];
 
-    updateTeamTurnDisplay(data.team, data.nextMember, null);
+        // 自分が次のリーダーならパレットを有効化
+        if (myRole === 'leader' && myTeam === data.nextTeam) {
+            document.getElementById('emojiPalette').style.opacity = '1';
+            document.getElementById('emojiPalette').style.pointerEvents = 'auto';
+            AudioManager.playSE('myTurn');
+        } else {
+            document.getElementById('emojiPalette').style.opacity = '0.4';
+            document.getElementById('emojiPalette').style.pointerEvents = 'none';
+        }
+
+        // メンバーのキーボードを無効化
+        document.getElementById('keyboardAreaTeam').style.opacity = '0.4';
+        document.getElementById('keyboardAreaTeam').style.pointerEvents = 'none';
+    }
 });
 
 // ヒント受信
@@ -1640,7 +1660,7 @@ socket.on('hintReceived', (data) => {
     line.innerHTML = `<span style="font-weight:bold;">${TEAM_LABELS[data.team]} 👑${data.leaderName}:</span> <span style="font-size:24px;">${data.emojis.join('')}</span>`;
     log.prepend(line);
 
-    // 最新ヒントを大きく表示（自チームのみ）
+    // 最新ヒントを表示（自チームのみ）
     if (data.team === myTeam && myRole === 'member') {
         const latestHint = document.getElementById('latestHint');
         const latestHintEmoji = document.getElementById('latestHintEmoji');
@@ -1649,7 +1669,22 @@ socket.on('hintReceived', (data) => {
             latestHint.style.display = 'block';
         }
     }
-            
+
+    // ヒント送信後→自チームメンバーのターンへ
+    updateTeamTurnDisplay(data.team, data.nextMember, null);
+
+    // メンバーのキーボードを有効化
+    if (myRole === 'member' && myTeam === data.team) {
+        document.getElementById('keyboardAreaTeam').style.opacity = '1';
+        document.getElementById('keyboardAreaTeam').style.pointerEvents = 'auto';
+        AudioManager.playSE('myTurn');
+    }
+
+    // リーダーのパレットを無効化
+    if (myRole === 'leader') {
+        document.getElementById('emojiPalette').style.opacity = '0.4';
+        document.getElementById('emojiPalette').style.pointerEvents = 'none';
+    }
 });
 
 // チームゲーム終了
@@ -1760,9 +1795,28 @@ socket.on('teamBattleReady', (data) => {
         area.appendChild(card);
     });
 
-    const firstTeam = data.activeTeams[0];
-    const firstMember = data.teams[firstTeam].find(id => data.teamLeaders[firstTeam] !== id);
-    updateTeamTurnDisplay(firstTeam, firstMember, data.playerNames);
+    // ゲーム開始時はリーダーのターン
+const firstTeam = data.activeTeams[0];
+const firstLeader = data.teamLeaders[firstTeam];
+const resultEl = document.getElementById('teamResult');
+resultEl.textContent = `${TEAM_LABELS[firstTeam]} 👑リーダーのヒント待ち...`;
+resultEl.style.color = TEAM_COLORS[firstTeam];
+
+// 自分が最初のリーダーなら有効化
+if (myRole === 'leader' && myTeam === firstTeam) {
+    document.getElementById('emojiPalette').style.opacity = '1';
+    document.getElementById('emojiPalette').style.pointerEvents = 'auto';
+    AudioManager.playSE('myTurn');
+} else {
+    if (document.getElementById('emojiPalette')) {
+        document.getElementById('emojiPalette').style.opacity = '0.4';
+        document.getElementById('emojiPalette').style.pointerEvents = 'none';
+    }
+    if (document.getElementById('keyboardAreaTeam')) {
+        document.getElementById('keyboardAreaTeam').style.opacity = '0.4';
+        document.getElementById('keyboardAreaTeam').style.pointerEvents = 'none';
+    }
+}
 
     showScreen('screenTeamBattle');
     const teamScorePanel = document.getElementById('teamScorePanel');

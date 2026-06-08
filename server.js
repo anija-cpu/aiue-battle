@@ -608,7 +608,6 @@ room.players.forEach(id => {
 
         clearTurnTimer(room);
 
-        // 自チームの単語に対してヒット判定
         const answer = room.teamAnswers[myTeam];
         const hits = room.teamHits[myTeam];
         let hitAny = false;
@@ -622,15 +621,21 @@ room.players.forEach(id => {
             }
         });
 
-        // ターン交代判定（ミスしたら次のメンバーへ）
-        const turnChanged = !hitAny;
-        if (turnChanged) {
+        // ミスしたら相手チームのリーダーのターンへ
+        const activeTeams = Object.keys(room.teams).filter(t => room.teams[t].length > 0 && room.teamLeaders[t]);
+        let nextTeam = myTeam;
+        let nextMember = currentMember;
+        let turnChanged = false;
+
+        if (!hitAny) {
+            // 次のチームへ
+            const currentTeamIndex = activeTeams.indexOf(myTeam);
+            nextTeam = activeTeams[(currentTeamIndex + 1) % activeTeams.length];
             room.teamTurnIndexes[myTeam] = (room.teamTurnIndexes[myTeam] + 1) % memberOrder.length;
+            nextMember = null; // リーダーのターン
+            turnChanged = true;
         }
 
-        const nextMember = memberOrder[room.teamTurnIndexes[myTeam] % memberOrder.length];
-
-        // 全員に結果通知
         io.to(socket.roomId).emit("teamAttackResult", {
             kana,
             team: myTeam,
@@ -638,15 +643,13 @@ room.players.forEach(id => {
             hitAny,
             hitIndexes,
             turnChanged,
+            nextTeam,
             nextMember,
+            nextIsLeader: turnChanged, // 次がリーダーターンかどうか
             teamHits: room.teamHits,
         });
 
-        // ヒントをリセット
-        room.currentHints = room.currentHints || {};
-        room.currentHints[myTeam] = [];
-
-        // 勝利判定：自チームの単語を全部当てた
+        // 勝利判定
         const allOpen = answer.every((k, i) => k === "×" || hits[i]);
         if (allOpen) {
             room.started = false;
@@ -687,10 +690,16 @@ room.players.forEach(id => {
         if (room.teamLeaders[myTeam] !== socket.id) return;
         if (!Array.isArray(emojis) || emojis.length === 0 || emojis.length > 1) return;
 
+        // ヒント送信後、自チームメンバーのターンへ
+        const memberOrder = room.teamMemberOrders[myTeam];
+        const currentMember = memberOrder[room.teamTurnIndexes[myTeam] % memberOrder.length];
+
         io.to(socket.roomId).emit("hintReceived", {
             team: myTeam,
             emojis,
             leaderName: room.playerNames[socket.id],
+            nextMember: currentMember,
+            nextTeam: myTeam,
         });
     });
 
