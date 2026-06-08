@@ -1770,16 +1770,13 @@ document.getElementById('teamRematchBtn').onclick = () => {
 };
 
 socket.on('teamBattleReady', (data) => {
-    updateTeamScorePanel(data.teamScores, data.targetScore);
     myTeam = data.myTeam || myTeam;
 
-        if (data.teamLeaders[myTeam] === socket.id) {
+    if (data.teamLeaders[myTeam] === socket.id) {
         myRole = 'leader';
     } else {
         myRole = 'member';
     }
-
-    
 
     // チームバトルエリアを構築
     const area = document.getElementById('teamBattleArea');
@@ -1825,50 +1822,40 @@ socket.on('teamBattleReady', (data) => {
         area.appendChild(card);
     });
 
-    // ゲーム開始時はリーダーのターン
-const firstTeam = data.activeTeams[0];
-const firstLeader = data.teamLeaders[firstTeam];
-const resultEl = document.getElementById('teamResult');
-resultEl.textContent = `${TEAM_LABELS[firstTeam]} 👑リーダーのヒント待ち...`;
-resultEl.style.color = TEAM_COLORS[firstTeam];
+    updateTeamScorePanel(data.teamScores, data.targetScore);
 
-// 自分が最初のリーダーなら有効化
-if (myRole === 'leader' && myTeam === firstTeam) {
-    document.getElementById('emojiPalette').style.opacity = '1';
-    document.getElementById('emojiPalette').style.pointerEvents = 'auto';
-    AudioManager.playSE('myTurn');
-} else {
-    if (document.getElementById('emojiPalette')) {
-        document.getElementById('emojiPalette').style.opacity = '0.4';
-        document.getElementById('emojiPalette').style.pointerEvents = 'none';
+    // ゲーム開始時はリーダーのターン
+    const firstTeam = data.activeTeams[0];
+    const resultEl = document.getElementById('teamResult');
+    resultEl.textContent = `${TEAM_LABELS[firstTeam]} 👑リーダーのヒント待ち...`;
+    resultEl.style.color = TEAM_COLORS[firstTeam];
+
+    if (myRole === 'leader' && myTeam === firstTeam) {
+        document.getElementById('emojiPalette').style.opacity = '1';
+        document.getElementById('emojiPalette').style.pointerEvents = 'auto';
+        AudioManager.playSE('myTurn');
+    } else {
+        if (document.getElementById('emojiPalette')) {
+            document.getElementById('emojiPalette').style.opacity = '0.4';
+            document.getElementById('emojiPalette').style.pointerEvents = 'none';
+        }
+        if (document.getElementById('keyboardAreaTeam')) {
+            document.getElementById('keyboardAreaTeam').style.opacity = '0.4';
+            document.getElementById('keyboardAreaTeam').style.pointerEvents = 'none';
+        }
     }
-    if (document.getElementById('keyboardAreaTeam')) {
-        document.getElementById('keyboardAreaTeam').style.opacity = '0.4';
-        document.getElementById('keyboardAreaTeam').style.pointerEvents = 'none';
-    }
-}
 
     showScreen('screenTeamBattle');
-    const teamScorePanel = document.getElementById('teamScorePanel');
-if (teamScorePanel) teamScorePanel.hidden = (id !== 'screenTeamBattle');
 
     if (myRole === 'member') {
         document.getElementById('keyboardAreaTeam').style.display = 'flex';
         document.getElementById('emojiPalette').style.display = 'none';
-        buildTeamKeyboard();
     } else if (myRole === 'leader') {
         document.getElementById('keyboardAreaTeam').style.display = 'none';
         document.getElementById('emojiPalette').style.display = 'block';
         buildEmojiPalette();
     }
 });
-
-// ターン表示
-    const firstTeam = data.activeTeams[0];
-    const firstMember = data.teams[firstTeam].find(id => data.teamLeaders[firstTeam] !== id);
-    updateTeamTurnDisplay(firstTeam, firstMember, data.playerNames);
-
-    showScreen('screenTeamBattle');
 
 showScreen("screenTitle");
 
