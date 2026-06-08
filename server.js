@@ -357,6 +357,12 @@ room.players.forEach(id => {
         });
         if (room.rematchVotes.length === room.players.length) {
             room.answers = {};
+            if (room.mode === 'team-deathmatch') {
+                room.teamAnswers = {};
+                room.teamHits = {};
+                room.teamTurnIndexes = {};
+                room.teamMemberOrders = {};
+            }
             room.hits = {};
             room.wordLengths = {};
             room.started = false;
@@ -370,7 +376,8 @@ room.players.forEach(id => {
             io.to(socket.roomId).emit("rematchReady");
             io.to(socket.roomId).emit("ready", {
                 turnOrder: room.turnOrder,
-                playerNames: room.playerNames
+                playerNames: room.playerNames,
+                mode: room.mode,
             });
         }
     });
