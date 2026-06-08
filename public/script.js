@@ -1312,21 +1312,6 @@ document.getElementById('modeTeamDeathmatch').onclick = () => {
     document.getElementById('modeBattleRoyale').classList.remove('active');
 };
 
-socket.on("ready", (data) => {
-    turnOrder = data.turnOrder;
-    playerNames = data.playerNames;
-    if (data.mode === 'team-deathmatch') {
-        currentMode = 'team-deathmatch';
-        if (isHost) {
-            document.getElementById('teamSelectDone').hidden = false;
-        }
-        showScreen("screenTeamSelect");
-    } else {
-        currentMode = 'battle-royale';
-        showScreen("screenTheme");
-    }
-});
-
 // チーム選択ボタン（自分自身の選択）
 document.querySelectorAll('.teamJoinLeader').forEach(btn => {
     btn.onclick = () => {
