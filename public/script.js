@@ -964,6 +964,14 @@ socket.on("rematchReady", () => {
         selectedEmojis = [];
 
         if (myRole === 'leader') {
+            const leaderScoreEl = document.getElementById('leaderScoreDisplay');
+            if (leaderScoreEl) {
+                leaderScoreEl.textContent = Object.keys(currentTeamScores).map(t => {
+                    const pt = currentTeamScores[t] || 0;
+                    const ptText = currentTargetScore > 0 ? `${pt}/${currentTargetScore}pt` : `${pt}pt`;
+                    return `${TEAM_LABELS[t]}：${ptText}`;
+                }).join('　');
+            }
             showScreen('screenLeaderInput');
         } else {
             showScreen('screenTeamBattle');
@@ -1277,7 +1285,8 @@ setTimeout(positionStartBtn, 100);
 
 const TEAM_COLORS = { A: '#e74c3c', B: '#3498db', C: '#2ecc71', D: '#f39c12' };
 const TEAM_LABELS = { A: '🔴 チームA', B: '🔵 チームB', C: '🟢 チームC', D: '🟡 チームD' };
-
+let currentTeamScores = {};
+let currentTargetScore = 0;
 let currentMode = 'battle-royale';
 let myTeam = null;
 let myRole = null; // 'leader' or 'member'
@@ -1770,6 +1779,17 @@ document.getElementById('teamRematchBtn').onclick = () => {
 };
 
 socket.on('teamBattleReady', (data) => {
+    currentTeamScores = data.teamScores || {};
+    currentTargetScore = data.targetScore || 0;
+    // leaderScoreDisplayを更新
+    const leaderScoreEl = document.getElementById('leaderScoreDisplay');
+    if (leaderScoreEl) {
+        leaderScoreEl.textContent = data.activeTeams.map(t => {
+            const pt = (data.teamScores && data.teamScores[t]) || 0;
+            const ptText = data.targetScore > 0 ? `${pt}/${data.targetScore}pt` : `${pt}pt`;
+            return `${TEAM_LABELS[t]}：${ptText}`;
+        }).join('　');
+    }
     myTeam = data.myTeam || myTeam;
 
     if (data.teamLeaders[myTeam] === socket.id) {
