@@ -601,9 +601,21 @@ checkButton.onclick = () => {
     checkButton.disabled = true;
     result.textContent = "単語を設定しました！全員の入力を待っています...";
     document.getElementById("redoButton").hidden = false;
+    document.getElementById("viewWordButton").hidden = false;
 };
 document.getElementById("redoButton").onclick = () => {
     socket.emit("cancelAnswer");
+};
+let wordVisible = false;
+document.getElementById("viewWordButton").onclick = () => {
+    wordVisible = !wordVisible;
+    inputs.forEach(i => {
+        if (i.value === "⚔️" || (wordVisible && answer[Array.from(inputs).indexOf(i)] !== "×")) {
+            const idx = Array.from(inputs).indexOf(i);
+            i.value = wordVisible ? answer[idx] : "⚔️";
+        }
+    });
+    document.getElementById("viewWordButton").textContent = wordVisible ? "🙈 隠す" : "👁️ 確認";
 };
 
 socket.on("answerCanceled", () => {
@@ -612,6 +624,7 @@ socket.on("answerCanceled", () => {
     answer = [];
     checkButton.disabled = false;
     document.getElementById("redoButton").hidden = true;
+    document.getElementById("viewWordButton").hidden = true;
     inputs.forEach(i => i.value = "");
     updateSelection();
     result.textContent = "";
