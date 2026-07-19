@@ -216,7 +216,7 @@ function buildCharSelect() {
     const grid = document.getElementById("charGrid");
     if (!grid) return;
     grid.innerHTML = "";
-    for (let i = 1; i <= 8; i++) {
+    for (let i = 1; i <= 9; i++) {
         const img = document.createElement("img");
         img.src = `/char${i}.png`;
         img.style.cssText = `
