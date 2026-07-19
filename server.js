@@ -208,6 +208,17 @@ io.on("connection", (socket) => {
         }
     });
 
+    socket.on("cancelAnswer", () => {
+    const room = rooms[socket.roomId];
+    if (!room) return;
+    if (room.started) return; // すでにバトルが始まっていたら何もしない
+    delete room.answers[socket.id];
+    delete room.wordLengths[socket.id];
+    delete room.hits[socket.id];
+    socket.emit("answerCanceled");
+    
+    });
+
     // =====================
     // 攻撃
     // =====================

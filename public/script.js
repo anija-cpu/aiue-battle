@@ -600,7 +600,22 @@ checkButton.onclick = () => {
     answered = true;
     checkButton.disabled = true;
     result.textContent = "単語を設定しました！全員の入力を待っています...";
+    document.getElementById("redoButton").hidden = false;
 };
+document.getElementById("redoButton").onclick = () => {
+    socket.emit("cancelAnswer");
+};
+
+socket.on("answerCanceled", () => {
+    answered = false;
+    currentIndex = 0;
+    answer = [];
+    checkButton.disabled = false;
+    document.getElementById("redoButton").hidden = true;
+    inputs.forEach(i => i.value = "");
+    updateSelection();
+    result.textContent = "";
+});
 
 socket.on("gameStart", (data) => {
     turnOrder = data.turnOrder;
