@@ -1898,7 +1898,7 @@ function showResultBanner(isWinner, winnerName, isMatch = false, targetScore = 0
     const nameBox = document.createElement("div");
     nameBox.style.cssText = `
     position: absolute;
-    top: 48%;
+    top: 60%;
     left: 50%;
     transform: translate(-50%, -50%);
     text-align: center;
