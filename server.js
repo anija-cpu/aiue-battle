@@ -1,8 +1,3 @@
-socket.on("setAnswer", (answerArray) => {
-    console.log("setAnswer received:", socket.id, answerArray);
-    const room = rooms[socket.roomId];
-    console.log("room:", room ? "found" : "not found");
-
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -558,18 +553,6 @@ room.players.forEach(id => {
         io.to(socket.roomId).emit("teamAdded", { team });
     });
 
-    socket.on('teamAdded', (data) => {
-        const card = document.querySelector(`.teamCard[data-team="${data.team}"]`);
-        if (card) card.style.display = 'flex';
-        if (data.team === 'C') {
-            document.getElementById('addTeamC').hidden = true;
-            document.getElementById('addTeamD').hidden = false;
-        }
-        if (data.team === 'D') {
-            document.getElementById('addTeamD').hidden = true;
-     }
-    });
-
     // =====================
     // チームデスマッチ：リーダーが単語設定
     // =====================
@@ -577,12 +560,8 @@ room.players.forEach(id => {
         const room = rooms[socket.roomId];
         if (!room) return;
         const team = socket.team;
-        console.log("setTeamAnswer:", socket.id, "team:", team, "role:", socket.teamRole);
-        console.log("teamLeaders:", room.teamLeaders);
-        console.log("teamAnswers before:", Object.keys(room.teamAnswers));
         if (!team) return;
         if (room.teamLeaders[team] !== socket.id) {
-        console.log("not leader, skip");
         return;
         }
         room.teamAnswers[team] = answerArray;
