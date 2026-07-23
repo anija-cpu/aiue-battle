@@ -1,3 +1,8 @@
+socket.on("setAnswer", (answerArray) => {
+    console.log("setAnswer received:", socket.id, answerArray);
+    const room = rooms[socket.roomId];
+    console.log("room:", room ? "found" : "not found");
+
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -158,7 +163,7 @@ io.on("connection", (socket) => {
         room.theme = theme;
         io.to(socket.roomId).emit("themeDecided", { theme });
     });
-    
+
     socket.on("rerollTheme", (theme) => {
     const room = rooms[socket.roomId];
     if (!room) return;

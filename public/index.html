@@ -248,14 +248,16 @@
     <br>
     <input id="freeThemeInput" placeholder="自由入力のお題を入力">
     <button id="freeThemeBtn" disabled>自由</button>
-    <button id="rerollThemeBtn">🎲 別のお題にする</button>
     <p id="themeWait"></p>
 </div>
 
 <!-- ③単語入力画面 -->
 <div id="screenInput" hidden>
     <p id="scoreInput">0勝 0敗</p>
-    <p id="themeDisplay"></p>
+    <div style="display:flex; align-items:center; justify-content:center; gap:8px;">
+        <p id="themeDisplay" style="margin:0;"></p>
+        <button id="rerollThemeBtn" hidden>🎲 別のお題にする</button>
+    </div>
     <h2>単語を入力してください</h2>
     <div class="cards" style="width: fit-content; margin: 8px auto;">
         <input class="card" maxlength="1">

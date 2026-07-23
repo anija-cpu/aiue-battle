@@ -844,6 +844,10 @@ socket.on("themeDecided", (data) => {
     document.getElementById("watchTheme").textContent = display;
     if (isSpectator) return;
 
+    // ランダム選択時のみリロールボタンを表示
+　　const rerollBtn = document.getElementById('rerollThemeBtn');
+　　if (rerollBtn) rerollBtn.hidden = false;
+
     const ptDisplay = document.getElementById("inputScoreDisplay");
     if (ptDisplay) {
         const lines = players.map(id => {
