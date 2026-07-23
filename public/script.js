@@ -1897,17 +1897,22 @@ function showResultBanner(isWinner, winnerName, isMatch = false, targetScore = 0
 
     const nameBox = document.createElement("div");
     nameBox.style.cssText = `
-        position: absolute;
-        top: 52%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: clamp(18px, 3vw, 32px);
-        font-weight: bold;
-        color: #3b1f0a;
-        text-align: center;
-        white-space: nowrap;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: clamp(24px, 4vw, 48px);
+    font-weight: 900;
+    color: #5a2d00;
+    text-align: center;
+    white-space: nowrap;
+    font-family: "Hiragino Kaku Gothic Pro", "Meiryo", sans-serif;
+    text-shadow: 2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff,
+                 3px 3px 6px rgba(0,0,0,0.2);
+    letter-spacing: 0.05em;
     `;
-    nameBox.textContent = `勝者：${winnerName}`;
+
+    nameBox.innerHTML = `<div style="font-size:0.6em; margin-bottom:4px;">勝者</div><div>${winnerName}</div>`;
 
     imgWrap.appendChild(img);
     imgWrap.appendChild(nameBox);
