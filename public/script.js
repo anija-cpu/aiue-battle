@@ -1905,10 +1905,10 @@ function showResultBanner(isWinner, winnerName, isMatch = false, targetScore = 0
     white-space: nowrap;
     `;
     nameBox.innerHTML = `
-    <div style="font-size:clamp(12px,1.5vw,18px); color:#888; font-weight:bold; margin-bottom:4px;">勝者</div>
-    <div style="font-size:clamp(28px,5vw,56px); font-weight:900; color:#3b1f0a; letter-spacing:0.05em; text-shadow:2px 2px 0 rgba(255,255,255,0.9);">${winnerName}</div>
-    `;
-    
+    <div style="font-size:clamp(12px,1.5vw,18px); color:#5a2d00; font-weight:bold; margin-bottom:4px;">勝者</div>
+    <div style="font-size:clamp(32px,6vw,64px); font-weight:900; color:#3b1f0a; letter-spacing:0.05em; font-family:'Zen Maru Gothic',sans-serif; text-shadow:3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff;">${winnerName}</div>
+`;
+
     imgWrap.appendChild(img);
     imgWrap.appendChild(nameBox);
     banner.appendChild(imgWrap);
