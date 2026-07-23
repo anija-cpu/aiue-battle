@@ -162,8 +162,9 @@ io.on("connection", (socket) => {
     socket.on("rerollTheme", (theme) => {
     const room = rooms[socket.roomId];
     if (!room) return;
-    if (room.themeSelected) return; // すでに確定していたら無効
+    // themeSelected チェックを削除
     room.theme = theme;
+    room.themeSelected = false; // リロール後はまた変更可能に
     io.to(socket.roomId).emit("themeRerolled", { theme });
 });
 
