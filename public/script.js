@@ -1898,22 +1898,17 @@ function showResultBanner(isWinner, winnerName, isMatch = false, targetScore = 0
     const nameBox = document.createElement("div");
     nameBox.style.cssText = `
     position: absolute;
-    top: 50%;
+    top: 48%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: clamp(24px, 4vw, 48px);
-    font-weight: 900;
-    color: #5a2d00;
     text-align: center;
     white-space: nowrap;
-    font-family: "Hiragino Kaku Gothic Pro", "Meiryo", sans-serif;
-    text-shadow: 2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff,
-                 3px 3px 6px rgba(0,0,0,0.2);
-    letter-spacing: 0.05em;
     `;
-
-    nameBox.innerHTML = `<div style="font-size:0.6em; margin-bottom:4px;">勝者</div><div>${winnerName}</div>`;
-
+    nameBox.innerHTML = `
+    <div style="font-size:clamp(12px,1.5vw,18px); color:#888; font-weight:bold; margin-bottom:4px;">勝者</div>
+    <div style="font-size:clamp(28px,5vw,56px); font-weight:900; color:#3b1f0a; letter-spacing:0.05em; text-shadow:2px 2px 0 rgba(255,255,255,0.9);">${winnerName}</div>
+    `;
+    
     imgWrap.appendChild(img);
     imgWrap.appendChild(nameBox);
     banner.appendChild(imgWrap);
