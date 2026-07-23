@@ -586,34 +586,11 @@ socket.on("ready", (data) => {
     }
 });
 
-checkButton.onclick = () => {
-    answer = Array.from(inputs).map(i => i.value || "×");
-    const validCount = answer.filter(k => k !== "×").length;
-    if (validCount < 2) {
-        alert("2文字以上入力してください！");
-        return;
-    }
-    socket.emit("setAnswer", answer);
-    inputs.forEach(i => {
-        if (i.value && i.value !== "×") i.value = "⚔️";
-    });
-    answered = true;
-    checkButton.disabled = true;
-    result.textContent = "単語を設定しました！全員の入力を待っています...";
-    document.getElementById("redoButton").hidden = false;
-    document.getElementById("viewWordButton").hidden = false;
-};
-document.getElementById("redoButton").onclick = () => {
-    socket.emit("cancelAnswer");
-};
-let wordVisible = false;
 document.getElementById("viewWordButton").onclick = () => {
     wordVisible = !wordVisible;
-    inputs.forEach(i => {
-        if (i.value === "⚔️" || (wordVisible && answer[Array.from(inputs).indexOf(i)] !== "×")) {
-            const idx = Array.from(inputs).indexOf(i);
-            i.value = wordVisible ? answer[idx] : "⚔️";
-        }
+    inputs.forEach((input, idx) => {
+        if (answer[idx] === "×") return; // ×マスは無視
+        input.value = wordVisible ? answer[idx] : "⚔️";
     });
     document.getElementById("viewWordButton").textContent = wordVisible ? "🙈 隠す" : "👁️ 確認";
 };
@@ -806,81 +783,30 @@ socket.on("gameEnd", (data) => {
     scores = data.scores || scores;
     winCounts[data.winner] = (winCounts[data.winner] || 0) + 1;
 
-    if (data.winner === socket.id) {
+    const isWinner = data.winner === socket.id;
+    if (isWinner) {
         wins++;
         const ptText = data.winnerScore != null ? ` +${data.winnerScore}pt` : '';
         result.textContent = `🎉 あなたの勝ち！${ptText}`;
         addLog(`🎉 ゲーム終了 - あなたの勝ち！${ptText}`);
     } else {
         losses++;
-        const ptText = data.winnerScore != null ? ` +${data.winnerScore}pt` : '';
         result.textContent = `💀 ${data.winnerName} の勝ち！`;
-        addLog(`🏆 ゲーム終了 - ${data.winnerName} の勝利！${ptText}`);
+        addLog(`🏆 ゲーム終了 - ${data.winnerName} の勝利！`);
     }
     myTurn = false;
-
     updateTurnPanel(null, turnOrder, playerNames, eliminated);
     hideTurnPanel();
     document.getElementById("rematchBtn").hidden = false;
+
+    // リザルトバナー表示
+    showResultBanner(isWinner, data.winnerName);
 });
 
 socket.on("matchEnd", (data) => {
     scores = {};
     const isWinner = data.winner === socket.id;
-
-    const banner = document.createElement("div");
-    banner.style.cssText = `
-        position: fixed; inset: 0; z-index: 9999;
-        display: flex; flex-direction: column;
-        align-items: center; justify-content: center;
-        background: rgba(0,0,0,0.85);
-        animation: fadeInBanner 0.5s ease;
-    `;
-
-    if (!document.getElementById('bannerStyle')) {
-        const style = document.createElement('style');
-        style.id = 'bannerStyle';
-        style.textContent = `
-            @keyframes fadeInBanner {
-                from { opacity: 0; transform: scale(0.92); }
-                to   { opacity: 1; transform: scale(1); }
-            }
-            @keyframes popIn {
-                from { opacity: 0; transform: scale(0.7); }
-                to   { opacity: 1; transform: scale(1); }
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
-    const img = document.createElement("img");
-    img.src = isWinner ? '/win.png' : '/lose.png';
-    img.style.cssText = `
-        max-width: 88vw; max-height: 70vh; object-fit: contain;
-        border-radius: 12px; box-shadow: 0 8px 40px rgba(0,0,0,0.6);
-        animation: popIn 0.4s ease 0.1s both;
-    `;
-
-    const subText = document.createElement("div");
-    subText.style.cssText = `
-        color: #fff; font-size: 16px; margin: 16px 0 0;
-        text-shadow: 0 1px 4px rgba(0,0,0,0.8);
-        animation: popIn 0.4s ease 0.25s both;
-    `;
-    subText.textContent = isWinner
-        ? `目標 ${data.targetScore || ''}pt 達成！完全勝利！`
-        : `${data.winnerName} が完全勝利しました`;
-
-    const btn = document.createElement("button");
-    btn.textContent = "続ける";
-    btn.style.cssText = `margin-top: 20px; font-size: 17px; padding: 10px 40px; animation: popIn 0.4s ease 0.4s both;`;
-    btn.onclick = () => banner.remove();
-
-    banner.appendChild(img);
-    banner.appendChild(subText);
-    banner.appendChild(btn);
-    document.body.appendChild(banner);
-
+    showResultBanner(isWinner, data.winnerName, true, data.targetScore);
     addLog(`🏆 マッチ終了 - ${data.winnerName} の完全勝利！`);
 });
 
@@ -1306,6 +1232,90 @@ function positionStartBtn() {
 
 window.addEventListener("resize", positionStartBtn);
 setTimeout(positionStartBtn, 100);
+
+// =====================
+// リザルトバナー
+// =====================
+function showResultBanner(isWinner, winnerName, isMatch = false, targetScore = 0) {
+    const old = document.getElementById('resultBanner');
+    if (old) old.remove();
+
+    if (!document.getElementById('bannerStyle')) {
+        const style = document.createElement('style');
+        style.id = 'bannerStyle';
+        style.textContent = `
+            @keyframes fadeInBanner {
+                from { opacity: 0; transform: scale(0.92); }
+                to   { opacity: 1; transform: scale(1); }
+            }
+            @keyframes popIn {
+                from { opacity: 0; transform: scale(0.7); }
+                to   { opacity: 1; transform: scale(1); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    const banner = document.createElement("div");
+    banner.id = 'resultBanner';
+    banner.style.cssText = `
+        position: fixed; inset: 0; z-index: 9999;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        background: rgba(0,0,0,0.7);
+        animation: fadeInBanner 0.5s ease;
+    `;
+
+    const imgWrap = document.createElement("div");
+    imgWrap.style.cssText = `
+        position: relative;
+        max-width: 88vw;
+        animation: popIn 0.4s ease 0.1s both;
+    `;
+
+    const img = document.createElement("img");
+    img.src = isWinner ? '/win.png' : '/lose.png';
+    img.style.cssText = `width: 100%; object-fit: contain; display: block;`;
+
+    const nameBox = document.createElement("div");
+    nameBox.style.cssText = `
+        position: absolute;
+        top: 52%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: clamp(18px, 3vw, 32px);
+        font-weight: bold;
+        color: #3b1f0a;
+        text-align: center;
+        white-space: nowrap;
+    `;
+    nameBox.textContent = `勝者：${winnerName}`;
+
+    imgWrap.appendChild(img);
+    imgWrap.appendChild(nameBox);
+    banner.appendChild(imgWrap);
+
+    if (isMatch) {
+        const subText = document.createElement("div");
+        subText.style.cssText = `
+            color: #fff; font-size: 16px; margin: 12px 0 0;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+            animation: popIn 0.4s ease 0.25s both;
+        `;
+        subText.textContent = isWinner
+            ? `目標 ${targetScore}pt 達成！完全勝利！`
+            : `${winnerName} が完全勝利しました`;
+        banner.appendChild(subText);
+    }
+
+    const btn = document.createElement("button");
+    btn.textContent = "続ける";
+    btn.style.cssText = `margin-top: 20px; font-size: 17px; padding: 10px 40px; animation: popIn 0.4s ease 0.4s both;`;
+    btn.onclick = () => banner.remove();
+    banner.appendChild(btn);
+
+    document.body.appendChild(banner);
+}
 
 // =====================
 // チームモード関連
@@ -1922,3 +1932,12 @@ function updateTeamScorePanel(teamScores, targetScore) {
             return `<div style="color:${TEAM_COLORS[t]}; font-weight:bold;">${TEAM_LABELS[t]}：${ptText}</div>`;
         }).join('');
 }
+
+document.getElementById('rerollThemeBtn').onclick = () => {
+    const theme = themeList[Math.floor(Math.random() * themeList.length)];
+    socket.emit("rerollTheme", theme);
+};
+
+socket.on("themeRerolled", (data) => {
+    document.getElementById('themeWait').textContent = `お題が「${data.theme}」に変更されました`;
+});

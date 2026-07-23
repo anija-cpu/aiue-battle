@@ -158,6 +158,14 @@ io.on("connection", (socket) => {
         room.theme = theme;
         io.to(socket.roomId).emit("themeDecided", { theme });
     });
+    
+    socket.on("rerollTheme", (theme) => {
+    const room = rooms[socket.roomId];
+    if (!room) return;
+    if (room.themeSelected) return; // すでに確定していたら無効
+    room.theme = theme;
+    io.to(socket.roomId).emit("themeRerolled", { theme });
+});
 
     // =====================
     // 単語登録
