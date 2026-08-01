@@ -115,6 +115,11 @@ const AudioManager = {
     },
 };
 
+const _savedBgm = parseFloat(localStorage.getItem('vol_bgm') ?? '0.15');
+const _savedSe = parseFloat(localStorage.getItem('vol_se') ?? '0.25');
+AudioManager._bgmVolume = _savedBgm;
+AudioManager._seVolume = _savedSe;
+
 let _audioUnlocked = false;
 AudioManager.playBGM('lobby');
 

@@ -243,16 +243,18 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
 #keyboard,
 #keyboard2 {
     display: grid;
-    grid-template-columns: repeat(10, 48px);
-    gap: 5px;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    gap: clamp(2px, 0.8vw, 5px);
+    width: 100%;
+    max-width: 520px;
 }
 
 #keyboard button,
 #specialKeyboard button,
 #keyboard2 button {
-    width: 48px;
-    height: 48px;
-    font-size: 17px;
+    width: 100%;
+    aspect-ratio: 1;
+    font-size: clamp(12px, 3.5vw, 17px);
     padding: 0;
     background: linear-gradient(180deg, #fff, #e8f4ff);
     color: #5a2d6a;
@@ -262,6 +264,7 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
     margin: 0;
     font-weight: bold;
 }
+
 #keyboard button:hover:not(:disabled),
 #keyboard2 button:hover:not(:disabled) { background: linear-gradient(180deg, #e8f4ff, #c8e8ff); }
 #keyboard button:disabled,
@@ -443,6 +446,12 @@ hr { border: none; border-top: 2px solid rgba(160,100,30,0.3); margin: 20px 0; }
     #allPlayersArea,
     #watchPlayersArea {
         grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-aspect-ratio: 1/1) {
+    #titleImg {
+        object-fit: cover !important;
     }
 }
 
